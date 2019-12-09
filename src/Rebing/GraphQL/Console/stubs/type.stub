@@ -1,0 +1,21 @@
+<?php
+
+namespace DummyNamespace;
+
+{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+use Rebing\GraphQL\Support\Type as GraphQLType;
+
+class DummyClass extends GraphQLType
+{
+    protected $attributes = [
+        'name' => 'DummyType',
+        'description' => 'A type'
+    ];
+
+    public function fields(): array
+    {
+        return array_merge({modelGraphQLFields}
+            []
+        );
+    }
+}

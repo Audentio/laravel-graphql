@@ -1,0 +1,57 @@
+<?php
+
+namespace DummyNamespace;
+
+{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+use Audentio\LaravelGraphQL\GraphQL\Support\Mutation;
+use Audentio\LaravelGraphQL\GraphQL\Traits\ErrorTrait;
+use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Definition\ResolveInfo;
+use GraphQL\Type\Definition\Type as GraphQLType;
+use Rebing\GraphQL\Support\SelectFields;
+
+class DummyClass extends Mutation
+{
+    use ErrorTrait;
+
+    protected $attributes = [
+        'name' => 'DummyMutation',
+        'description' => 'A mutation'
+    ];
+
+    public function type(): GraphQLType
+    {
+        return new ObjectType([
+            'name' => 'actionDataType',
+            'fields' => [
+                'dataType' => [
+                    'name' => 'dataType',
+                    'type' => \GraphQL::type('{GraphQLType}'),
+                ],
+            ],
+        ]);
+    }
+
+    public function args(): array
+    {
+        return [
+            'dataType' => [
+                'rules' => ['required'],
+                'type' => new InputObjectType([
+                    'name' => 'actionDataTypeData',
+                    'fields' => array_merge({modelGraphQLFields}
+                        []
+                    ),
+                ]),
+            ],
+        ];
+    }
+
+    public function resolve($root, $args, SelectFields $fields, ResolveInfo $info)
+    {
+        return [
+            'dataType' => null
+        ];
+    }
+}

@@ -1,0 +1,66 @@
+<?php
+
+namespace DummyNamespace;
+
+{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+use Audentio\LaravelGraphQL\GraphQL\Support\Query;
+use Audentio\LaravelGraphQL\GraphQL\Traits\ErrorTrait;
+use GraphQL\Type\Definition\ResolveInfo;
+use GraphQL\Type\Definition\Type as GraphQLType;
+use Illuminate\Database\Eloquent\Builder;
+use Rebing\GraphQL\Support\Facades\GraphQL;
+use Rebing\GraphQL\Support\SelectFields;
+
+class DummyClass extends Query
+{
+    use ErrorTrait;
+
+    /** @var DummyClass */
+    protected static $instance;
+
+    protected $attributes = [
+        'name' => 'DummyQuery',
+        'description' => 'A query'
+    ];
+
+    public static function getType(): GraphQLType
+    {
+        return {graphQLTypeStatement};
+    }
+
+    public static function getArgs($scope = ''): array
+    {
+        $instance = self::$instance;
+
+        $args = [{args}
+        ];
+
+        return $args;
+    }
+
+    /**
+     * @param Builder $root
+     * @param $args
+     * @param SelectFields $fields
+     * @param ResolveInfo $info
+     * @return mixed
+     */
+    public static function getResolve($root, $args, SelectFields $fields, ResolveInfo $info)
+    {
+        $instance = self::$instance;
+        $with = $fields->getRelations();
+        $root->with($with);
+
+        return [];
+    }
+
+    public function resolve($root, $args, SelectFields $fields, ResolveInfo $info)
+    {{rootDef}
+        return self::getResolve($root, $args, $fields, $info);
+    }
+
+    public function __construct()
+    {
+        self::$instance = $this;
+    }
+}
