@@ -136,4 +136,12 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
         return $dataType;
     }
 
+    public function handle()
+    {
+        $return = parent::handle();
+
+        $this->call('config:graphql');
+
+        return $return;
+    }
 }

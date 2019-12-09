@@ -13,7 +13,7 @@
         "php": ">=7.3.0",
         "ext-json": "*",
         "ext-openssl": "*",
-        "audentio/laravel-base": "^0.4.0",
+        "audentio/laravel-base": "^0.4.2",
         "rebing/graphql-laravel": "^3.1"
     },
     "autoload": {
@@ -24,7 +24,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Audentio\\LaravelGraphQL\\Providers\\ExtendServiceProvider"
+                "Audentio\\LaravelGraphQL\\Providers\\GraphQLServiceProvider"
             ]
         }
     }

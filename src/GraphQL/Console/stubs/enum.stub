@@ -1,0 +1,17 @@
+<?php
+
+namespace DummyNamespace;
+
+{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+use Rebing\GraphQL\Support\Type as GraphQLType;
+
+class DummyClass extends GraphQLType
+{
+    protected $enumObject = true;
+
+    protected $attributes = [
+        'name' => 'DummyType',
+        'description' => 'An enum type',
+        'values' => [],
+    ];
+}

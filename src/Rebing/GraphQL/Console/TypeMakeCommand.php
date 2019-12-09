@@ -21,9 +21,14 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
 
     protected function qualifyClass($name)
     {
-        $name = $this->suffixCommandClass($name, 'Type');
+        $name = $this->qualifyClassSuffix($name);
 
         return parent::qualifyClass($name);
+    }
+
+    protected function qualifyClassSuffix($name)
+    {
+        return $this->suffixCommandClass($name, 'Type');
     }
 
     protected function buildClass($name)
@@ -65,5 +70,14 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
         }
 
         return $stub;
+    }
+
+    public function handle()
+    {
+        $return = parent::handle();
+
+        $this->call('config:graphql');
+
+        return $return;
     }
 }

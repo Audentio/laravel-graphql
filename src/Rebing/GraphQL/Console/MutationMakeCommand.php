@@ -111,4 +111,13 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
         preg_match('/([^\\\]+)$/', $name, $matches);
         return lcfirst(substr($matches[1], 0, -8));
     }
+
+    public function handle()
+    {
+        $return = parent::handle();
+
+        $this->call('config:graphql');
+
+        return $return;
+    }
 }
