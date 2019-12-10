@@ -21,11 +21,15 @@ abstract class Query extends BaseQuery
 
     public function type(): GraphQLType
     {
-        return self::getType();
+        $class = get_called_class();
+
+        return $class::getType();
     }
 
     public function args(): array
     {
-        return self::getArgs();
+        $class = get_called_class();
+
+        return $class::getArgs();
     }
 }
