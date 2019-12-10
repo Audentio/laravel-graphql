@@ -45,7 +45,7 @@ class DummyClass extends Query
      * @param ResolveInfo $info
      * @return mixed
      */
-    public static function getResolve($root, $args, SelectFields $fields, ResolveInfo $info)
+    public static function getResolve($root, $args, $context, ResolveInfo $info, Closure $selectFields)
     {
         $instance = self::$instance;
         $with = $fields->getRelations();
@@ -54,7 +54,7 @@ class DummyClass extends Query
         return [];
     }
 
-    public function resolve($root, $args, SelectFields $fields, ResolveInfo $info)
+    public function resolve($root, $args, $context, ResolveInfo $info, Closure $selectFields)
     {{rootDef}
         return self::getResolve($root, $args, $fields, $info);
     }

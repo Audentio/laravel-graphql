@@ -10,6 +10,7 @@ use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use Rebing\GraphQL\Support\SelectFields;
+use \Closure;
 
 class DummyClass extends Mutation
 {
@@ -48,7 +49,7 @@ class DummyClass extends Mutation
         ];
     }
 
-    public function resolve($root, $args, SelectFields $fields, ResolveInfo $info)
+    public function resolve($root, $args, $context, ResolveInfo $info, Closure $selectFields)
     {
         return [
             'dataType' => null
