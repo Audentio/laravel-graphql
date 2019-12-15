@@ -49,6 +49,7 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
         $replaceItems = [
             'modelInclude' => '',
             'modelGraphQLFields' => '',
+            'DummyType' => $dataType,
         ];
         if (class_exists($modelClass)) {
             $replaceItems['modelInclude'] = "use {$modelClass};\n";
