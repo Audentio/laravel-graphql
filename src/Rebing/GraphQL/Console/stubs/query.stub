@@ -13,8 +13,6 @@ use Rebing\GraphQL\Support\SelectFields;
 
 class DummyClass extends Query
 {
-    use ErrorTrait;
-
     /** @var DummyClass */
     protected static $instance;
 
