@@ -19,7 +19,7 @@ class DummyClass extends Query
     protected static $instance;
 
     protected $attributes = [
-        'name' => 'DummyQuery',
+        'name' => 'DummyClass',
         'description' => 'A query'
     ];
 
@@ -45,18 +45,20 @@ class DummyClass extends Query
      * @param ResolveInfo $info
      * @return mixed
      */
-    public static function getResolve($root, $args, $context, ResolveInfo $info, Closure $selectFields)
+    public static function getResolve($root, $args, $context, ResolveInfo $info, \Closure $getSelectFields)
     {
         $instance = self::$instance;
+        $fields = $getSelectFields();
+        $select = $fields->getSelect();
         $with = $fields->getRelations();
         $root->with($with);
 
         return [];
     }
 
-    public function resolve($root, $args, $context, ResolveInfo $info, Closure $selectFields)
+    public function resolve($root, $args, $context, ResolveInfo $info, \Closure $getSelectFields)
     {{rootDef}
-        return self::getResolve($root, $args, $fields, $info);
+        return self::getResolve($root, $args, $context, $info, $getSelectFields);
     }
 
     public function __construct()

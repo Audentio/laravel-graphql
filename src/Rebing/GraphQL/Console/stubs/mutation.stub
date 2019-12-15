@@ -17,7 +17,7 @@ class DummyClass extends Mutation
     use ErrorTrait;
 
     protected $attributes = [
-        'name' => 'DummyMutation',
+        'name' => 'DummyClass',
         'description' => 'A mutation'
     ];
 
