@@ -6,11 +6,37 @@ use Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError;
 use Audentio\LaravelGraphQL\GraphQL\Errors\NotFoundError;
 use Audentio\LaravelGraphQL\GraphQL\Errors\PermissionError;
 use Audentio\LaravelGraphQL\GraphQL\Errors\ValidationError;
+use Audentio\LaravelGraphQL\LaravelGraphQL;
 use GraphQL\Type\Definition\ResolveInfo;
 use Illuminate\Support\MessageBag;
 
 trait ErrorTrait
 {
+    public static $ERR_PERMISSION = 'permission';
+    public static $ERR_NOT_FOUND = 'notFound';
+    public static $ERR_ = 'notFound';
+
+    public function typedError($info, $error, $rootItem, $errorType = null, $defaultErrorType = LaravelGraphQL::ERR_PERMISSION)
+    {
+        switch ($errorType) {
+            case LaravelGraphQL::ERR_INVALID_PARAMETER:
+                $this->invalidParameterError($info, $error);
+                break;
+
+            case LaravelGraphQL::ERR_NOT_FOUND:
+                $this->notFoundError($info, $error);
+                break;
+
+            case LaravelGraphQL::ERR_VALIDAATION:
+                $this->validationError($info, $error, $rootItem);
+                break;
+
+            case LaravelGraphQL::ERR_PERMISSION:
+            default:
+                $this->permissionError($info, $error);
+        }
+    }
+
     /**
      * @param string $message
      * @return bool
@@ -30,7 +56,7 @@ trait ErrorTrait
             $message = 'You cannot access this query directly';
         }
 
-        return $this->permissionError($info, $message);
+        $this->permissionError($info, $message);
     }
 
     /**
