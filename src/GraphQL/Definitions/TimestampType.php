@@ -63,6 +63,6 @@ class TimestampType extends ScalarType
             $value = new Carbon($value);
         }
 
-        return $value->toAtomString();
+        return $value;
     }
 }
