@@ -5,6 +5,7 @@ namespace Audentio\LaravelGraphQL\Providers;
 use Audentio\LaravelBase\Traits\ExtendServiceProviderTrait;
 use Audentio\LaravelGraphQL\GraphQL\Console\ConfigGraphqlCommand;
 use Audentio\LaravelGraphQL\GraphQL\Console\EnumMakeCommand;
+use Audentio\LaravelGraphQL\GraphQL\Console\ResourceMakeCommand;
 use Audentio\LaravelGraphQL\Illuminate\Foundation\Console\ModelMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\MutationMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\QueryMakeCommand;
@@ -31,6 +32,7 @@ class GraphQLServiceProvider extends ServiceProvider
 
         $this->commands(EnumMakeCommand::class);
         $this->commands(ConfigGraphqlCommand::class);
+        $this->commands(ResourceMakeCommand::class);
     }
 
     protected function extendBase()

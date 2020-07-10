@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace DummyNamespace;
 
 {modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
-use Rebing\GraphQL\Support\Type as GraphQLType;
+use Audentio\LaravelGraphQL\GraphQL\Support\Type as GraphQLType;
 
 class DummyClass extends GraphQLType
 {
@@ -12,10 +14,8 @@ class DummyClass extends GraphQLType
         'description' => 'A type'
     ];
 
-    public function fields(): array
+    protected function getResourceClass(): string
     {
-        return array_merge({modelGraphQLFields}
-            []
-        );
+        // TODO: Implement getResourceClass() method.
     }
 }

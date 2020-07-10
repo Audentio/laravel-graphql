@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace DummyNamespace;
 
 {modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
@@ -21,12 +23,12 @@ class DummyClass extends Query
         'description' => 'A query'
     ];
 
-    public static function getType(): GraphQLType
+    public static function getQueryType(): GraphQLType
     {
         return {graphQLTypeStatement};
     }
 
-    public static function getArgs($scope = ''): array
+    public static function getQueryArgs($scope = ''): array
     {
         $instance = self::$instance;
 

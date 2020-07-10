@@ -13,12 +13,12 @@ abstract class Query extends BaseQuery
 {
     use ErrorTrait, PaginationTrait;
 
-    public static function getArgs(): array
+    public static function getQueryArgs(): array
     {
         throw new \LogicException('Contents of getArgs must be overridden');
     }
 
-    public static function getType(): GraphQLType
+    public static function getQueryType(): GraphQLType
     {
         throw new \LogicException('Contents of getType must be overridden');
     }
@@ -27,13 +27,13 @@ abstract class Query extends BaseQuery
     {
         $class = get_called_class();
 
-        return $class::getType();
+        return $class::getQueryType();
     }
 
     public function args(): array
     {
         $class = get_called_class();
 
-        return $class::getArgs();
+        return $class::getQueryArgs();
     }
 }

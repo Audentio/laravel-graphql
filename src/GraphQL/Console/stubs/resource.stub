@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+namespace DummyNamespace;
+
+use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+use Audentio\LaravelGraphQL\GraphQL\Support\Resource as GraphQLResource;
+
+class DummyClass extends GraphQLResource
+{
+    public function getExpectedModelClass(): string
+    {
+        // TODO: Implement getExpectedModelClass() method.
+    }
+
+    public function getOutputFields(): array
+    {
+        // TODO: Implement getOutputFields() method.
+    }
+
+    public function getInputFields(bool $update = false): array
+    {
+        // TODO: Implement getInputFields() method.
+    }
+
+    public function getCommonFields(bool $update = false): array
+    {
+        // TODO: Implement getCommonFields() method.
+    }
+}
