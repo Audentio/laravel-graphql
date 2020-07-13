@@ -13,7 +13,9 @@ abstract class Resource
     }
 
     abstract public function getExpectedModelClass(): string;
+
     abstract public function getOutputFields(): array;
     abstract public function getInputFields(bool $update = false): array;
     abstract public function getCommonFields(bool $update = false): array;
+    abstract public function getGraphQLTypeName();
 }

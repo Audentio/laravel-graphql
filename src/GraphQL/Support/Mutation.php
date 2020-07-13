@@ -3,7 +3,11 @@
 namespace Audentio\LaravelGraphQL\GraphQL\Support;
 
 use Audentio\LaravelGraphQL\GraphQL\Errors\ValidationError;
+use Audentio\LaravelGraphQL\GraphQL\Support\Resource as BaseResource;
+use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
+use GraphQL\Type\Definition\Type as GraphqlType;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Rebing\GraphQL\Error\AuthorizationError;
@@ -12,6 +16,80 @@ use Rebing\GraphQL\Support\SelectFields;
 
 abstract class Mutation extends BaseMutation
 {
+    protected $resource;
+
+    public function type(): GraphqlType
+    {
+        return new ObjectType([
+            'name' => lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()),
+            'fields' => [
+                lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()) => [
+                    'name' => lcfirst($this->getResource()->getGraphQLTypeName()),
+                    'type' => \GraphQL::type($this->getResource()->getGraphQLTypeName()),
+                ],
+            ],
+        ]);
+    }
+
+    public function args(): array
+    {
+        $actionType = $this->getActionType();
+
+        if ($actionType !== 'update' && $actionType !== 'create') {
+            throw new \LogicException('You must extend the args() function on ' . get_class(self));
+        }
+
+        $dataType = lcfirst($this->getResource()->getGraphQLTypeName());
+
+        $additionalFields = $this->getAdditioanlResourceFields();
+
+        $isUpdate = false;
+        if ($actionType === 'update') {
+            $isUpdate = true;
+
+            if (!$this->removeUpdateResourceIDField()) {
+                $additionalFields['id'] = [
+                    'type' => GraphqlType::id(),
+                    'rules' => ['required'],
+                ];
+            }
+        }
+
+        return [
+            $dataType => [
+                'rules' => ['required'],
+                'type' => new InputObjectType([
+                        'name' => $this->getActionType() . $this->getResource()->getGraphQLTypeName() . 'Data',
+                        'fields' => array_merge(
+                            $additionalFields,
+                            $this->getResource()->getInputFields($isUpdate),
+                            $this->getResource()->getCommonFields($isUpdate)
+                        ),
+                ]),
+            ],
+        ];
+    }
+
+    protected function getAdditioanlResourceFields(): array
+    {
+        return [];
+    }
+
+    protected function removeUpdateResourceIDField(): bool
+    {
+        return false;
+    }
+
+    protected function getResource(): BaseResource
+    {
+        if (!$this->resource) {
+            $className = $this->getResourceClassName();
+            $this->resource = new $className;
+        }
+
+        return $this->resource;
+    }
+
     protected function getResolver(): ?\Closure
     {
         if (! method_exists($this, 'resolve')) {
@@ -67,4 +145,7 @@ abstract class Mutation extends BaseMutation
             return call_user_func_array($resolver, $arguments);
         };
     }
+
+    abstract protected function getActionType(): string;
+    abstract protected function getResourceClassName(): string;
 }

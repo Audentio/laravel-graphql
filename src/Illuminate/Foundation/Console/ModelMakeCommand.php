@@ -2,37 +2,60 @@
 
 namespace Audentio\LaravelGraphQL\Illuminate\Foundation\Console;
 
+use Illuminate\Support\Str;
+use Symfony\Component\Console\Input\InputOption;
+
 class ModelMakeCommand extends \Audentio\LaravelBase\Illuminate\Foundation\Console\ModelMakeCommand
 {
-    protected function buildClass($name)
+    public function handle()
     {
-        $stub = parent::buildClass($name);
+        $return = parent::handle();
 
-        $sub = <<<EOF
-    public static function getOutputFields(): array
-    {
-        \$fields = [];
+        if ($return === false) {
+            return false;
+        }
 
-        return \$fields;
+        if ($this->option('graphql')) {
+            $this->createGraphQLSchema();
+        }
     }
 
-    public static function getCommonFields(bool \$update = false): array
+    protected function createGraphQLSchema(): void
     {
-        \$fields = [];
+        $modelName = Str::studly(class_basename($this->argument('name')));
+        $modelsName = Str::pluralStudly(class_basename($this->argument('name')));
 
-        return \$fields;
+        $this->call('make:graphql:query', [
+            'name' => $modelName,
+        ]);
+
+        $this->call('make:graphql:query', [
+            'name' => $modelsName,
+        ]);
+
+        $this->call('make:graphql:type', [
+            'name' => $modelName,
+        ]);
+
+        $this->call('make:graphql:resource', [
+            'name' => $modelName,
+        ]);
+
+        $this->call('make:graphql:mutation', [
+            'name' => 'Create' . $modelName,
+        ]);
+
+        $this->call('make:graphql:mutation', [
+            'name' => 'Update' . $modelName,
+        ]);
     }
 
-    public static function getInputFields(bool \$update = false): array
+    protected function getOptions()
     {
-        \$fields = [];
+        $options = parent::getOptions();
 
-        return \$fields;
-    }
-EOF;
+        $options[] = ['graphql', null, InputOption::VALUE_NONE, 'Generate GraphQL classes for model'];
 
-        $stub = str_replace('//', '//' . "\n\n" . $sub, $stub);
-
-        return $stub;
+        return $options;
     }
 }

@@ -23,38 +23,20 @@ class DummyClass extends Mutation
         'description' => 'A mutation'
     ];
 
-    public function type(): GraphQLType
-    {
-        return new ObjectType([
-            'name' => 'actionDataType',
-            'fields' => [
-                'dataType' => [
-                    'name' => 'dataType',
-                    'type' => \GraphQL::type('{GraphQLType}'),
-                ],
-            ],
-        ]);
-    }
-
-    public function args(): array
-    {
-        return [
-            'dataType' => [
-                'rules' => ['required'],
-                'type' => new InputObjectType([
-                    'name' => 'actionDataTypeData',
-                    'fields' => array_merge({modelGraphQLFields}
-                        []
-                    ),
-                ]),
-            ],
-        ];
-    }
-
     public function resolve($root, $args, $context, ResolveInfo $info, Closure $selectFields)
     {
         return [
             'dataType' => null
         ];
+    }
+
+    protected function getActionType(): string
+    {
+        {actionTypeReturn}
+    }
+
+    protected function getResourceClassName(): string
+    {
+        {resourceReturn}
     }
 }

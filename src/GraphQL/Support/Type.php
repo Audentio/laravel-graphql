@@ -2,6 +2,7 @@
 
 namespace Audentio\LaravelGraphQL\GraphQL\Support;
 
+use Audentio\LaravelGraphQL\GraphQL\Support\Resource as BaseResource;
 use \Rebing\GraphQL\Support\Type as GraphQLType;
 
 abstract class Type extends GraphQLType
@@ -11,11 +12,11 @@ abstract class Type extends GraphQLType
         return $this->getResource()->getTypeFields();
     }
 
-    protected function getResource(): Resource
+    protected function getResource(): BaseResource
     {
-        $className = $this->getResourceClass();
+        $className = $this->getResourceClassName();
         return new $className;
     }
 
-    abstract protected function getResourceClass(): string;
+    abstract protected function getResourceClassName(): string;
 }

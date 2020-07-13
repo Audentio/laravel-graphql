@@ -37,7 +37,7 @@ class GraphQLServiceProvider extends ServiceProvider
 
     protected function extendBase()
     {
-        // $this->overrideIlluminateCommand('command.model.make', ModelMakeCommand::class);
+         $this->overrideIlluminateCommand('command.model.make', ModelMakeCommand::class);
     }
 
     protected function extendRebing()

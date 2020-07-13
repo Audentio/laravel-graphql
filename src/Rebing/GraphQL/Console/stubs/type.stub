@@ -14,8 +14,8 @@ class DummyClass extends GraphQLType
         'description' => 'A type'
     ];
 
-    protected function getResourceClass(): string
+    protected function getResourceClassName(): string
     {
-        // TODO: Implement getResourceClass() method.
+        // TODO: Implement getResourceClassName() method.
     }
 }
