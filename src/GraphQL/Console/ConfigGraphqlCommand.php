@@ -3,7 +3,9 @@
 namespace Audentio\LaravelGraphQL\GraphQL\Console;
 
 use Audentio\LaravelBase\Console\Commands\AbstractConfigCommand;
-use Audentio\LaravelGraphQL\GraphQL\Enums\Filter\FilterOperatorEnum;
+use Audentio\LaravelGraphQL\GraphQL\Definitions\Enums\ContentType\ContentTypeEnum;
+use Audentio\LaravelGraphQL\GraphQL\Definitions\Enums\Filter\FilterOperatorEnum;
+use Audentio\LaravelGraphQL\GraphQL\Definitions\UnionTypes\ContentType\ContentUnionType;
 
 class ConfigGraphqlCommand extends AbstractConfigCommand
 {
@@ -57,10 +59,12 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
     protected function buildEnums()
     {
         $dir = app_path('GraphQL/Enums');
+        $classes = [
+            FilterOperatorEnum::class,
+            ContentTypeEnum::class,
+        ];
 
         $this->getRecursiveClasses($classes, $dir);
-
-        $classes['FilterOperatorEnum'] = FilterOperatorEnum::class;
 
         return $this->formatResponse($classes, '');
     }
@@ -68,6 +72,10 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
     protected function buildUnions()
     {
         $dir = app_path('GraphQL/UnionTypes');
+
+        $classes = [
+            ContentUnionType::class,
+        ];
 
         $this->getRecursiveClasses($classes, $dir);
 

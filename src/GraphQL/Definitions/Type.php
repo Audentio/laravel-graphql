@@ -3,6 +3,7 @@
 namespace Audentio\LaravelGraphQL\GraphQL\Definitions;
 
 use Audentio\LaravelBase\Foundation\AbstractModel;
+use Audentio\LaravelBase\Utils\ContentTypeUtil;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use Rebing\GraphQL\Support\SelectFields;
@@ -17,6 +18,28 @@ class Type extends \GraphQL\Type\Definition\Type
     public static function timestamp()
     {
         return TimestampType::type();
+    }
+
+    public static function contentField($type = 'Content'): array
+    {
+        return [
+            'type' => \GraphQL::type($type),
+            'description' => 'Associated content',
+        ];
+    }
+
+    public static function contentTypeField($name, $type = 'ContentTypeEnum'): array
+    {
+        return [
+            'type' => \GraphQL::type($type),
+            'description' => 'The type of associated content',
+            'resolve' => function($root, $args, $fields, $info) use ($name) {
+                $attribute = $name . '_type';
+                $contentType = $root->{$attribute};
+
+                return ContentTypeUtil::getFriendlyContentTypeName($contentType) ?: null;
+            }
+        ];
     }
 
     public static function methodValue($graphQLType, $method): array

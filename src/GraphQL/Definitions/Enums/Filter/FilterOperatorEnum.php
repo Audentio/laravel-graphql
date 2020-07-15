@@ -1,6 +1,6 @@
 <?php
 
-namespace Audentio\LaravelGraphQL\GraphQL\Enums\Filter;
+namespace Audentio\LaravelGraphQL\GraphQL\Definitions\Enums\Filter;
 
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
