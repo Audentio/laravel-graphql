@@ -36,6 +36,7 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
         $stub = parent::buildClass($name);
         $stub = $this->replaceModelFields($stub, $name);
         $stub = $this->replaceTypeClass($stub);
+        $stub = $this->replaceResourceClass($stub, $name);
 
         return $stub;
     }
@@ -71,6 +72,28 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
         }
 
         return $stub;
+    }
+
+    protected function replaceResourceClass($stub, $name)
+    {
+        $replacements = [];
+
+        $resourceName = substr(class_basename($name), 0, -4) . 'Resource';
+        $resourceClass = '';
+
+        if (class_exists('App\GraphQL\Resources\\' . $resourceName)) {
+            $resourceClass = 'App\GraphQL\Resources\\' . $resourceName;
+        }
+
+        if ($resourceClass) {
+            $replacements['{resourceClass}'] = 'return ' . $resourceName . '::class;';
+            $replacements['{resoureInclude}'] = 'use ' . $resourceClass . ";\n";
+        } else {
+            $replacements['{resourceClass}'] = '// TODO: Implement getResourceClassName() method.';
+            $replacements['{resoureInclude}'] = '';
+        }
+
+        return str_replace(array_keys($replacements), array_values($replacements), $stub);
     }
 
     public function handle()

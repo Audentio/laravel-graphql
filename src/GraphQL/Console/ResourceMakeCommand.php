@@ -12,7 +12,7 @@ class ResourceMakeCommand extends GeneratorCommand
 
     protected $signature = 'make:graphql:resource {name}';
     protected $description = 'Create a new GraphQL resource class';
-    protected $type = 'Type';
+    protected $type = 'Resource';
 
     protected function getStub()
     {
@@ -34,8 +34,38 @@ class ResourceMakeCommand extends GeneratorCommand
     protected function buildClass($name)
     {
         $stub = parent::buildClass($name);
+        $stub = $this->replaceGraphqlName($stub);
 
-        return $this->replaceGraphqlName($stub);
+        $modelClass = '';
+        $modelName = class_basename($name);
+        $modelName = substr($modelName, 0, -8);
+
+        if (class_exists('App\Models\\' . $modelName)) {
+            $modelClass = 'App\Models\\' . $modelName;
+        }
+
+        $stub = $this->replaceModelName($stub, $modelName, $modelClass);
+
+        return $stub;
+    }
+
+    protected function replaceModelName(string $stub, string $modelName = null, string $modelClass = null): string
+    {
+        $replacements = [];
+
+        if ($modelClass) {
+           $replacements['{modelInclude}'] = 'use ' . $modelClass . ";\n";
+            $replacements['{modelClassName}'] = 'return ' . $modelName . '::class;';
+        } else {
+            $replacements['{modelInclude}'] = '';
+            $replacements['{modelClassName}'] = '';
+        }
+
+        $replacements['{graphQLTypeName}'] = 'return \'' . $modelName . '\';';
+
+        $stub = str_replace(array_keys($replacements), array_values($replacements), $stub);
+
+        return $stub;
     }
 
     protected function replaceGraphqlName(string $stub): string

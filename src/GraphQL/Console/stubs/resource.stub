@@ -4,28 +4,33 @@ declare(strict_types=1);
 
 namespace DummyNamespace;
 
-use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Support\Resource as GraphQLResource;
 
 class DummyClass extends GraphQLResource
 {
     public function getExpectedModelClass(): string
     {
-        // TODO: Implement getExpectedModelClass() method.
+        {modelClassName}
     }
 
     public function getOutputFields(): array
     {
-        // TODO: Implement getOutputFields() method.
+        return [];
     }
 
     public function getInputFields(bool $update = false): array
     {
-        // TODO: Implement getInputFields() method.
+        return [];
     }
 
     public function getCommonFields(bool $update = false): array
     {
-        // TODO: Implement getCommonFields() method.
+        return [];
+    }
+
+    public function getGraphQLTypeName()
+    {
+        {graphQLTypeName}
     }
 }

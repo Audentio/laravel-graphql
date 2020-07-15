@@ -3,6 +3,7 @@
 namespace Audentio\LaravelGraphQL\GraphQL\Console;
 
 use Audentio\LaravelBase\Console\Commands\AbstractConfigCommand;
+use Audentio\LaravelGraphQL\GraphQL\Enums\Filter\FilterOperatorEnum;
 
 class ConfigGraphqlCommand extends AbstractConfigCommand
 {
@@ -58,6 +59,8 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
         $dir = app_path('GraphQL/Enums');
 
         $this->getRecursiveClasses($classes, $dir);
+
+        $classes['FilterOperatorEnum'] = FilterOperatorEnum::class;
 
         return $this->formatResponse($classes, '');
     }

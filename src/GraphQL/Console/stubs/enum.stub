@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace DummyNamespace;
 
 {modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
-use Rebing\GraphQL\Support\Type as GraphQLType;
+use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
+use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 
-class DummyClass extends GraphQLType
+class DummyClass extends Enum
 {
     protected $enumObject = true;
 

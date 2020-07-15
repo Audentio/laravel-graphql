@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DummyNamespace;
 
-{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+{resoureInclude}{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Support\Type as GraphQLType;
 
 class DummyClass extends GraphQLType
@@ -16,6 +16,6 @@ class DummyClass extends GraphQLType
 
     protected function getResourceClassName(): string
     {
-        // TODO: Implement getResourceClassName() method.
+        {resourceClass}
     }
 }
