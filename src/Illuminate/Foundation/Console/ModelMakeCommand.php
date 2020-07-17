@@ -26,27 +26,27 @@ class ModelMakeCommand extends \Audentio\LaravelBase\Illuminate\Foundation\Conso
         $modelsName = Str::pluralStudly(class_basename($this->argument('name')));
 
         $this->call('make:graphql:query', [
-            'name' => $modelName,
+            'name' => $modelName . '/' . $modelName,
         ]);
 
         $this->call('make:graphql:query', [
-            'name' => $modelsName,
-        ]);
-
-        $this->call('make:graphql:type', [
-            'name' => $modelName,
+            'name' => $modelName . '/' . $modelsName,
         ]);
 
         $this->call('make:graphql:resource', [
             'name' => $modelName,
         ]);
 
-        $this->call('make:graphql:mutation', [
-            'name' => 'Create' . $modelName,
+        $this->call('make:graphql:type', [
+            'name' => $modelName,
         ]);
 
         $this->call('make:graphql:mutation', [
-            'name' => 'Update' . $modelName,
+            'name' => $modelName. '/Create' . $modelName,
+        ]);
+
+        $this->call('make:graphql:mutation', [
+            'name' => $modelName . '/Update' . $modelName,
         ]);
     }
 
