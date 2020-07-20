@@ -5,6 +5,7 @@ namespace Audentio\LaravelGraphQL\GraphQL\Traits;
 use Audentio\LaravelBase\Utils\StrUtil;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use GraphQL\Type\Definition\InputObjectType;
+use Illuminate\Database\Eloquent\Builder;
 
 trait FilterableQueryTrait
 {
