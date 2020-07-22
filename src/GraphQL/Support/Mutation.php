@@ -2,8 +2,10 @@
 
 namespace Audentio\LaravelGraphQL\GraphQL\Support;
 
+use App\GraphQL\Mutations\Entity\DeleteEntityMutation;
 use Audentio\LaravelGraphQL\GraphQL\Errors\ValidationError;
 use Audentio\LaravelGraphQL\GraphQL\Support\Resource as BaseResource;
+use GraphQL\GraphQL;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
@@ -35,39 +37,52 @@ abstract class Mutation extends BaseMutation
     {
         $actionType = $this->getActionType();
 
-        if ($actionType !== 'update' && $actionType !== 'create') {
-            throw new \LogicException('You must extend the args() function on ' . get_class(self));
+        if ($actionType !== 'update' && $actionType !== 'create' && $actionType !== 'delete') {
+            throw new \LogicException('You must extend the args() function on ' . get_class($this));
         }
+
+        $fields = [];
 
         $dataType = lcfirst($this->getResource()->getGraphQLTypeName());
 
-        $additionalFields = $this->getAdditioanlResourceFields();
+        if ($actionType === 'delete') {
+            $fields['id'] = [
+                'type' => GraphqlType::nonNull(GraphqlType::id()),
+                'rules' => ['required'],
+            ];
+        } else {
+            $additionalFields = $this->getAdditioanlResourceFields();
 
-        $isUpdate = false;
-        if ($actionType === 'update') {
-            $isUpdate = true;
+            $isUpdate = false;
+            if ($actionType === 'update') {
+                $isUpdate = true;
 
-            if (!$this->removeUpdateResourceIDField()) {
-                $additionalFields['id'] = [
-                    'type' => GraphqlType::id(),
-                    'rules' => ['required'],
-                ];
+                if (!$this->removeUpdateResourceIDField()) {
+                    $additionalFields['id'] = [
+                        'type' => GraphqlType::nonNull(GraphqlType::id()),
+                        'rules' => ['required'],
+                    ];
+                }
             }
+
+            $fields = array_merge(
+                $additionalFields,
+                $this->getResource()->getInputFields($isUpdate),
+                $this->getResource()->getCommonFields($isUpdate)
+            );
         }
 
-        return [
+        $return = [
             $dataType => [
                 'rules' => ['required'],
                 'type' => new InputObjectType([
                         'name' => $this->getActionType() . $this->getResource()->getGraphQLTypeName() . 'Data',
-                        'fields' => array_merge(
-                            $additionalFields,
-                            $this->getResource()->getInputFields($isUpdate),
-                            $this->getResource()->getCommonFields($isUpdate)
-                        ),
+                        'fields' => $fields
                 ]),
             ],
         ];
+
+        return $return;
     }
 
     protected function getAdditioanlResourceFields(): array
