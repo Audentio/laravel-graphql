@@ -40,9 +40,11 @@ class DummyClass extends Query
 
     /**
      * @param Builder $root
-     * @param $args
-     * @param SelectFields $fields
+     * @param array $args
+     * @param mixed $context
      * @param ResolveInfo $info
+     * @param \Closure $getSelectFields
+     * 
      * @return mixed
      */
     public static function getResolve($root, $args, $context, ResolveInfo $info, \Closure $getSelectFields)

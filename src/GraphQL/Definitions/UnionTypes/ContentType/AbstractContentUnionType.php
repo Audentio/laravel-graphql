@@ -44,6 +44,6 @@ abstract class AbstractContentUnionType extends BaseUnionType
 
     public function __construct()
     {
-        $this->attributes['name'] = str_replace(get_class($this), '\\', '_');
+        $this->attributes['name'] = class_basename($this);
     }
 }
