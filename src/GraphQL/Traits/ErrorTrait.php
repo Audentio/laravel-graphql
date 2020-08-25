@@ -85,9 +85,9 @@ trait ErrorTrait
                 $messages = $validatorMessages;
             }
 
-            $messages = [
+            $messages = $this->recurseValidationErrorMessages([
                 $rootItem => $messages,
-            ];
+            ]);
             $validatorMessages = new MessageBag($messages);
         }
         $validationError->setValidatorMessages($validatorMessages);
@@ -105,6 +105,25 @@ trait ErrorTrait
         $this->standardizeArguments($info, $message);
 
         throw new InvalidParameterError($message, $info);
+    }
+
+    protected function recurseValidationErrorMessages(array $validatorMessages, string $parentKey = null): array
+    {
+        $return = [];
+        foreach ($validatorMessages as $key => $message) {
+            if (is_array($message)) {
+                foreach ($this->recurseValidationErrorMessages($message, $key) as $rKey => $rMessage) {
+                    $return[$rKey] = $rMessage;
+                }
+            } else {
+                if ($parentKey) {
+                    $key = $parentKey . '.' . $key;
+                }
+                $return[$key] = $message;
+            }
+        }
+
+        return $return;
     }
 
     protected function standardizeArguments(&$info = null, &$message = null)
