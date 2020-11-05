@@ -6,16 +6,19 @@ use Audentio\LaravelBase\Utils\StrUtil;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use GraphQL\Type\Definition\InputObjectType;
 use Illuminate\Database\Eloquent\Builder;
+use Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError;
 
 trait FilterableQueryTrait
 {
     /**
      * @param Builder $builder
-     * @param array $args
-     * @param mixed ...$extraParams
+     * @param array   $args
+     * @param mixed   ...$extraParams
+     *
      * @return mixed
+     * @throws \Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError
      */
-    public static function applyFilters($builder, array &$args, ...$extraParams)
+    public static function applyFilters(Builder $builder, array &$args, ...$extraParams)
     {
         $filterableFields = self::prepareFilters($extraParams);
 
@@ -92,6 +95,12 @@ trait FilterableQueryTrait
         return $builder;
     }
 
+    /**
+     * @param array $extraParams
+     *
+     * @return array
+     * @throws \Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError
+     */
     public static function prepareFilters(array $extraParams = []): array
     {
         $filterableFields = call_user_func_array(['self', 'getFilters'], $extraParams);
@@ -110,10 +119,26 @@ trait FilterableQueryTrait
                 ];
             }
 
+            if (isset($filterableField['graphQLType'])) {
+                $graphQLType = $filterableField['graphQLType'];
+            }
+
+            if (isset($filterableField['type'])) {
+                $graphQLType = $filterableField['type'];
+            }
+
+            if (!isset($graphQLType)) {
+                throw new InvalidParameterError('The ' . $key . ' filter needs to have a type.');
+            }
+
+            if (!Type::isInputType($graphQLType)) {
+                throw new InvalidParameterError('The ' . $key . ' filter is not an input type.');
+            }
+
             $filterableField = array_merge([
-                'graphQLType' => Type::string(),
-                'canFilter' => true,
-                'hasOperator' => true,
+                'graphQLType' => $graphQLType,
+                'canFilter' => isset($filterableField['canFilter']) ? $filterableField['canFilter'] : true,
+                'hasOperator' => isset($filterableField['hasOperator']) ? $filterableField['hasOperator'] : true,
             ], $filterableField);
 
             $preparedFields[$filterableField['field']] = $filterableField;
@@ -122,6 +147,12 @@ trait FilterableQueryTrait
         return $preparedFields;
     }
 
+    /**
+     * @param       $scope
+     * @param array $args
+     *
+     * @throws \Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError
+     */
     public static function addFilterArgs($scope, array &$args)
     {
         $filterableFields = self::prepareFilters();
@@ -129,14 +160,14 @@ trait FilterableQueryTrait
         $fieldObjs = [];
         foreach ($filterableFields as $fieldData) {
             $field = $fieldData['field'];
-            $graphQlType = $fieldData['graphQLType'];
+            $graphQLType = $fieldData['graphQLType'];
 
             $fieldPasc = StrUtil::convertUnderscoresToPascalCase($field);
 
             if ($fieldData['hasOperator']) {
-                $fieldObjs[$field] = Type::filterField('filter' . $scope . $fieldPasc, $graphQlType);
+                $fieldObjs[$field] = Type::filterField($scope . $fieldPasc, $graphQLType);
             } else {
-                $fieldObjs[$field] = $graphQlType;
+                $fieldObjs[$field] = $graphQLType;
             }
         }
 
