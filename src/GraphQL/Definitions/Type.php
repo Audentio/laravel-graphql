@@ -95,6 +95,7 @@ class Type extends \GraphQL\Type\Definition\Type
     {
         return new InputObjectType([
             'name' => 'sort' . $name,
+            'description' => '',
             'fields' => [
                 'execution_order' => ['type' => Type::int()],
                 'direction' => ['type' => \GraphQL::type('SortDirectionEnum')],
@@ -106,6 +107,7 @@ class Type extends \GraphQL\Type\Definition\Type
     {
         return Type::listOf(new InputObjectType([
             'name' => 'filter' . $name,
+            'description' => '',
             'fields' => [
                 'operator' => ['type' => \GraphQL::type('FilterOperatorEnum')],
                 'value' => ['type' => $graphQLType],
