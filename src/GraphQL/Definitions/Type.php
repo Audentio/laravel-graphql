@@ -66,6 +66,9 @@ class Type extends \GraphQL\Type\Definition\Type
         ];
     }
 
+    /**
+     * @deprecated 1.1.8 No longer used by internal code and not recommended.
+     */
     public static function relationQuery($graphQLType, $queryClass, $relationMethod, $scope = '', \Closure $query = null): array
     {
         return [
