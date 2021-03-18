@@ -6,6 +6,7 @@ use Audentio\LaravelBase\Console\Commands\AbstractConfigCommand;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Enums\ContentType\ContentTypeEnum;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Enums\Filter\FilterOperatorEnum;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\UnionTypes\ContentType\ContentUnionType;
+use Audentio\LaravelGraphQL\LaravelGraphQL;
 
 class ConfigGraphqlCommand extends AbstractConfigCommand
 {
@@ -15,12 +16,7 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
             'query' => $this->buildQueries(),
             'mutation' => $this->buildMutations(),
 
-            'types' => array_merge(
-                $this->buildTypes(),
-                $this->buildEnums(),
-                $this->buildUnions(),
-                []
-            ),
+            'types' => $this->buildTypes(),
         ];
     }
 
@@ -35,7 +31,17 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
 
         $this->getRecursiveClasses($classes, $dir);
 
-        return $this->formatResponse($classes, 'Query', true);
+        $queries = $this->formatResponse($classes, 'Query', true);
+
+        $queries = array_replace(
+            LaravelGraphQL::getDefaultSchema()['queries'] ?? [],
+            $queries,
+            []
+        );
+
+        ksort($queries);
+
+        return $queries;
     }
 
     protected function buildMutations()
@@ -44,10 +50,35 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
 
         $this->getRecursiveClasses($classes, $dir);
 
-        return $this->formatResponse($classes, 'Mutation', true);
+        $mutations = $this->formatResponse($classes, 'Mutation', true);
+
+        $mutations = array_replace(
+            LaravelGraphQL::getDefaultSchema()['mutations'] ?? [],
+            $mutations,
+            []
+        );
+
+        ksort($mutations);
+
+        return $mutations;
     }
 
-    protected function buildTypes()
+    protected function buildTypes(): array
+    {
+        $types = array_replace(
+            LaravelGraphQL::getDefaultSchema()['types'] ?? [],
+            $this->buildGeneralTypes(),
+            $this->buildEnums(),
+            $this->buildUnions(),
+            []
+        );
+
+        ksort($types);
+
+        return $types;
+    }
+
+    protected function buildGeneralTypes()
     {
         $dir = app_path('GraphQL/Types');
 
