@@ -165,9 +165,15 @@ trait FilterableQueryTrait
             $fieldPasc = StrUtil::convertUnderscoresToPascalCase($field);
 
             if ($fieldData['hasOperator']) {
-                $fieldObjs[$field] = Type::filterField($scope . $fieldPasc, $graphQLType);
+                $fieldObjs[$field] = [
+                    'type' => Type::filterField($scope . $fieldPasc, $graphQLType),
+                    'rules' => $fieldData['rules'] ?? [],
+                ];
             } else {
-                $fieldObjs[$field] = $graphQLType;
+                $fieldObjs[$field] = [
+                    'type' => $graphQLType,
+                    'rules' => $fieldData['rules'] ?? [],
+                ];
             }
         }
 
