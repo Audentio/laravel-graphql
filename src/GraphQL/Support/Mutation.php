@@ -37,7 +37,8 @@ abstract class Mutation extends BaseMutation
     {
         $actionType = $this->getActionType();
 
-        if ($actionType !== 'update' && $actionType !== 'create' && $actionType !== 'delete') {
+        if ($actionType !== 'update' && $actionType !== 'create' && $actionType !== 'delete'
+            && $actionType !== 'restore' && $actionType !== 'undelete') {
             throw new \LogicException('You must extend the args() function on ' . get_class($this));
         }
 
@@ -45,7 +46,7 @@ abstract class Mutation extends BaseMutation
 
         $dataType = lcfirst($this->getResource()->getGraphQLTypeName());
 
-        if ($actionType === 'delete') {
+        if ($actionType === 'delete' || $actionType === 'restore' || $actionType === 'undelete') {
             $fields['id'] = [
                 'type' => GraphqlType::nonNull(GraphqlType::id()),
                 'rules' => ['required'],
