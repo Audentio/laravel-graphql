@@ -34,6 +34,11 @@ abstract class Query extends BaseQuery
     {
         $class = get_called_class();
 
-        return $class::getQueryArgs();
+        $baseScope = '';
+        if (config('audentioGraphQL.enableBaseScopeGeneration')) {
+            $baseScope = ucfirst($this->attributes['name']);
+        }
+
+        return $class::getQueryArgs($baseScope);
     }
 }

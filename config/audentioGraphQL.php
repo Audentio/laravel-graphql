@@ -6,4 +6,11 @@ return [
      * SQL queries.
      */
     'enableDebug' => false,
+
+    /*
+     * If enabled, a base scope will be generated and passed to the $scope variable
+     * automatically when relevant. For installs prior to 1.2 this should be set to
+     * false.
+     */
+    'enableBaseScopeGeneration' => true,
 ];
