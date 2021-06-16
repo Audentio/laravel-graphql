@@ -61,7 +61,7 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
         $indent = '            ';
 
         if ($this->isDataTypeSingular($name)) {
-            $args = "\n" . $indent . '\'id\' => [\'type\' => Type::id(), \'rules\' => [\'required\']],';
+            $args = "\n" . $indent . '\'id\' => [\'type\' => Type::nonNull(Type::id()), \'rules\' => [\'required\']],';
         }
 
         $stub = str_replace('{args}', $args, $stub);
