@@ -28,9 +28,9 @@ class Type extends \GraphQL\Type\Definition\Type
         ];
     }
 
-    public static function contentTypeField($name, $type = 'ContentTypeEnum'): array
+    public static function contentTypeField($name, $type = 'ContentTypeEnum', array $fieldExtra = []): array
     {
-        return [
+        return array_merge([
             'type' => \GraphQL::type($type),
             'description' => 'The type of associated content',
             'resolve' => function($root, $args, $fields, $info) use ($name) {
@@ -39,17 +39,17 @@ class Type extends \GraphQL\Type\Definition\Type
 
                 return ContentTypeUtil::getFriendlyContentTypeName($contentType) ?: null;
             }
-        ];
+        ], $fieldExtra);
     }
 
-    public static function methodValue($graphQLType, $method): array
+    public static function methodValue($graphQLType, $method, array $fieldExtra = []): array
     {
-        return [
+        return array_merge([
             'type' => $graphQLType,
             'resolve' => function(AbstractModel $root) use ($method) {
                 return $root->$method();
             }
-        ];
+        ], $fieldExtra);
     }
 
     public static function attributeIfMethodReturnsTrue($graphQLType, $attribute, $method, $returnIfFalse = null): array
