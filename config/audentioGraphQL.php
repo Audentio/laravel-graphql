@@ -13,4 +13,10 @@ return [
      * false.
      */
     'enableBaseScopeGeneration' => true,
+
+    /*
+     * If enabled, the `model` attribute will be assigned to all Types with an
+     * associated model automatically.
+     */
+    'enableTypeModel' => true,
 ];

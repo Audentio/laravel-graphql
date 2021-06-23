@@ -58,7 +58,7 @@ class ResourceMakeCommand extends GeneratorCommand
             $replacements['{modelClassName}'] = 'return ' . $modelName . '::class;';
         } else {
             $replacements['{modelInclude}'] = '';
-            $replacements['{modelClassName}'] = '';
+            $replacements['{modelClassName}'] = 'return null;';
         }
 
         $replacements['{graphQLTypeName}'] = 'return \'' . $modelName . '\';';
