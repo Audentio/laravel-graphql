@@ -46,6 +46,8 @@ abstract class Mutation extends BaseMutation
 
         $dataType = lcfirst($this->getResource()->getGraphQLTypeName());
 
+        $baseScope = $this->getResource()->getBaseScope($this->getActionType());
+
         if ($actionType === 'delete' || $actionType === 'restore' || $actionType === 'undelete') {
             $fields['id'] = [
                 'type' => GraphqlType::nonNull(GraphqlType::id()),
@@ -68,8 +70,8 @@ abstract class Mutation extends BaseMutation
 
             $fields = array_merge(
                 $additionalFields,
-                $this->getResource()->getInputFields($isUpdate),
-                $this->getResource()->getCommonFields($isUpdate)
+                $this->getResource()->getInputFields($baseScope, $isUpdate),
+                $this->getResource()->getCommonFields($baseScope, $isUpdate)
             );
         }
 

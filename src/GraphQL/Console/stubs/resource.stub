@@ -9,7 +9,7 @@ use Audentio\LaravelGraphQL\GraphQL\Support\Resource as GraphQLResource;
 
 class DummyClass extends GraphQLResource
 {
-    public function getExpectedModelClass(): string
+    public function getExpectedModelClass(): ?string
     {
         {modelClassName}
     }
