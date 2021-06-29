@@ -58,6 +58,11 @@ trait FilterableQueryTrait
 
             if (!$filterApplied) {
                 if (isset($filterableField['default'])) {
+                    if (!is_array($filterableField['default'])) {
+                        $filterableField['default'] = [
+                            'value' => $filterableField['default'],
+                        ];
+                    }
                     $filter = array_merge([
                         'operator' => '=',
                         'value' => '',
