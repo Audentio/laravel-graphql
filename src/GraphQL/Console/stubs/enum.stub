@@ -6,7 +6,6 @@ namespace DummyNamespace;
 
 {modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
-use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 
 class DummyClass extends Enum
 {
