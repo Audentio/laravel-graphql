@@ -14,17 +14,17 @@ class DummyClass extends GraphQLResource
         {modelClassName}
     }
 
-    public function getOutputFields(): array
+    public function getOutputFields(string $scope): array
     {
         return [];
     }
 
-    public function getInputFields(bool $update = false): array
+    public function getInputFields(string $scope, bool $update = false): array
     {
         return [];
     }
 
-    public function getCommonFields(bool $update = false): array
+    public function getCommonFields(string $scope, bool $update = false): array
     {
         return [];
     }
