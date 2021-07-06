@@ -46,6 +46,7 @@ class Type extends \GraphQL\Type\Definition\Type
     {
         return array_merge([
             'type' => $graphQLType,
+            'selectable' => false,
             'resolve' => function(AbstractModel $root) use ($method) {
                 return $root->$method();
             }
@@ -56,6 +57,7 @@ class Type extends \GraphQL\Type\Definition\Type
     {
         return [
             'type' => $graphQLType,
+            'selectable' => false,
             'resolve' => function(AbstractModel $root) use ($attribute, $method, $returnIfFalse) {
                 if ($root->$method()) {
                     return $root->$attribute;
