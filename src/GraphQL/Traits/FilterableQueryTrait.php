@@ -28,7 +28,7 @@ trait FilterableQueryTrait
             $filterApplied = false;
             if (isset($args['filter']) && array_key_exists($field, $args['filter'])) {
                 $filters = $args['filter'][$field];
-                if (!is_array($filters)) {
+                if (!$filterableField['hasOperator']) {
                     $filters = [[
                         'operator' => 'e',
                         'value' => $filters,
@@ -38,6 +38,10 @@ trait FilterableQueryTrait
                 foreach ($filters as $filter) {
                     if (!$filterableField['canFilter']) {
                         continue;
+                    }
+
+                    if (isset($filterableField['parseValue'])) {
+                        $filter['value'] = $filterableField['parseValue']($filter['value'], $filterableField);
                     }
 
                     $filter['column'] = $filterableField['column'];
