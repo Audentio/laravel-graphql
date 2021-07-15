@@ -184,6 +184,10 @@ trait FilterableQueryTrait
                     'rules' => $fieldData['rules'] ?? [],
                 ];
             }
+
+            if (isset($fieldData['description'])) {
+                $fieldObjs[$field]['description'] = $fieldData['description']; // apply description if specified
+            }
         }
 
         if (!empty($fieldObjs)) {
@@ -191,6 +195,7 @@ trait FilterableQueryTrait
                 'type' => new InputObjectType([
                     'name' => 'filter' . $scope,
                     'fields' => $fieldObjs,
+                    'description' => 'Filters for ' . $scope,
                 ]),
             ];
         }
