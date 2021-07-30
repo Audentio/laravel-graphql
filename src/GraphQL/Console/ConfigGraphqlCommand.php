@@ -151,10 +151,10 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
 
             $realName = str_replace(app_path(), '', $filePath);
             $realName = str_replace('.php', '', $realName);
-            if (substr($realName, 0, 1) === '/') {
+            if (substr($realName, 0, 1) === DIRECTORY_SEPARATOR) {
                 $realName = 'App' . $realName;
             } else {
-                $realName = 'App/' . $realName;
+                $realName = 'App' . DIRECTORY_SEPARATOR . $realName;
             }
 
             $className = str_replace('/', '\\', $realName);
