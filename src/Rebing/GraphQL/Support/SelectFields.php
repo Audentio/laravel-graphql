@@ -43,7 +43,7 @@ class SelectFields extends SelectFieldsBase
                 $query = $customQuery($requestedFields['args'], $query, $ctx);
             }
 
-            $query->select($select);
+//            $query->select($select);
             $query->with($with);
         };
     }
