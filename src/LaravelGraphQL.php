@@ -39,6 +39,8 @@ class LaravelGraphQL
 
             return GraphQLRequestTagUtil::concatenateTags($tags);
         }
+
+        return [];
     }
 
     public static function getDefaultSchema(): array
