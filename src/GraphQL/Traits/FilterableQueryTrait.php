@@ -56,7 +56,6 @@ trait FilterableQueryTrait
 
                     $filterApplied = true;
                     $filtersToApply[] = $filter;
-                    continue;
                 }
             }
 
@@ -97,6 +96,10 @@ trait FilterableQueryTrait
                     }
                 } else {
                     $builder->where($column, $filter['operator'], $filter['value']);
+
+                    if ($filter['operator'] === '<' || $filter['operator'] === '<=') {
+                        $builder->orWhereNull($column);
+                    }
                 }
             }
         }
