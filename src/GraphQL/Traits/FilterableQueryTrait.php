@@ -95,10 +95,15 @@ trait FilterableQueryTrait
                         $builder->whereNotIn($column, $filter['value']);
                     }
                 } else {
-                    $builder->where($column, $filter['operator'], $filter['value']);
+
 
                     if ($filter['operator'] === '<' || $filter['operator'] === '<=') {
-                        $builder->orWhereNull($column);
+                        $builder->where(function ($query) use ($column, $filter) {
+                            $query->where($column, $filter['operator'], $filter['value'])
+                                  ->orWhereNull($column);
+                        });
+                    } else {
+                        $builder->where($column, $filter['operator'], $filter['value']);
                     }
                 }
             }
