@@ -26,21 +26,31 @@ class LaravelGraphQL
 
     protected static $debugEnabled = false;
 
-    public static function getTagsForGraphQLRequest(Request $request, bool $concat = false): array
+    public static function getTagsForGraphQLRequest(Request $request): array
     {
         $source = $request->input('query') ?? null;
         if ($source) {
             $sourceObj = new Source($source);
-            $tags = GraphQLRequestTagUtil::buildTagsForSource($sourceObj);
-
-            if (!$concat) {
-                return $tags;
-            }
-
-            return GraphQLRequestTagUtil::concatenateTags($tags);
+            return GraphQLRequestTagUtil::buildTagsForSource($sourceObj);
         }
 
         return [];
+    }
+
+    public static function getOperationNamesForGraphQLRequest(Request $request): array
+    {
+        $operationNames = [];
+        $tags = self::getTagsForGraphQLRequest($request);
+        foreach ($tags as $tag) {
+            $tagParts = explode(':', $tag, 3);
+            if (!isset($tagParts[2]) || in_array($tagParts[2], $operationNames)) {
+                continue;
+            }
+
+            $operationNames[] = $tagParts[2];
+        }
+
+        return $operationNames;
     }
 
     public static function getDefaultSchema(): array

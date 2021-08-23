@@ -42,7 +42,7 @@ class GraphQLRequestTagUtil
         return $returnTags;
     }
 
-    public static function buildTagsForSource(Source $source): array
+    public static function buildTagsForSource(Source $source, bool $excludeUndefinedOperations = true): array
     {
         $tags = [];
 
@@ -53,8 +53,17 @@ class GraphQLRequestTagUtil
 
             /** @var OperationDefinitionNode $node */
             foreach ($documentNode->definitions as $node) {
+                $operationUndefined = false;
                 $operationName = $node->name->value ?? null;
-                $operationType = isset($node->operation) ? ucfirst($node->operation) : 'UndefinedOperation';
+                $operationType = isset($node->operation) ? ucfirst($node->operation) : null;
+                if (!$operationType) {
+                    $operationUndefined = true;
+                    $operationType = 'UndefinedOperation';
+
+                }
+                if ($excludeUndefinedOperations && $operationUndefined) {
+                    continue;
+                }
                 if ($operationName) {
                     $tags[] = 'GraphQL:Operation:' . $operationName;
                 }
