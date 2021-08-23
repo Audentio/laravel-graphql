@@ -43,11 +43,13 @@ class LaravelGraphQL
         $tags = self::getTagsForGraphQLRequest($request);
         foreach ($tags as $tag) {
             $tagParts = explode(':', $tag, 3);
-            if (!isset($tagParts[2]) || in_array($tagParts[2], $operationNames)) {
+            $operationName = isset ($operationname) ? lcfirst($tagParts[2]) : null;
+            if (!$operationName || in_array($operationName, $operationNames)) {
                 continue;
             }
 
-            $operationNames[] = $tagParts[2];
+
+            $operationNames[] = $operationName;
         }
 
         return $operationNames;
