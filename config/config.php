@@ -89,6 +89,7 @@ return [
      * Reference \Rebing\GraphQL\Support\PaginationType::class
      */
     'pagination_type' => \Audentio\LaravelGraphQL\GraphQL\Definitions\PaginationType::class,
+    'cursor_pagination_type' => \Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType::class,
 
     /*
      * Config for GraphiQL (see (https://github.com/graphql/graphiql).

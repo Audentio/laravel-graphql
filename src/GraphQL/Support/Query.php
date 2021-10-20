@@ -2,6 +2,7 @@
 
 namespace Audentio\LaravelGraphQL\GraphQL\Support;
 
+use Audentio\LaravelGraphQL\GraphQL\Traits\CursorPaginationTrait;
 use Audentio\LaravelGraphQL\GraphQL\Traits\ErrorTrait;
 use Audentio\LaravelGraphQL\GraphQL\Traits\PaginationTrait;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Support\SelectFields;
@@ -15,7 +16,7 @@ use Rebing\GraphQL\Support\ResolveInfoFieldsAndArguments;
 
 abstract class Query extends BaseQuery
 {
-    use ErrorTrait, PaginationTrait;
+    use ErrorTrait, PaginationTrait, CursorPaginationTrait;
 
     public static function getQueryArgs(): array
     {

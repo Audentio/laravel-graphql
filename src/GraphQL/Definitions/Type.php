@@ -6,9 +6,11 @@ use Audentio\LaravelBase\Foundation\AbstractModel;
 use Audentio\LaravelBase\Utils\ContentTypeUtil;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
+use GraphQL\Type\Definition\Type as GraphQLType;
+use Rebing\GraphQL\Support\Facades\GraphQL;
 use Rebing\GraphQL\Support\SelectFields;
 
-class Type extends \GraphQL\Type\Definition\Type
+class Type extends GraphQLType
 {
     public static function json()
     {
@@ -26,6 +28,19 @@ class Type extends \GraphQL\Type\Definition\Type
             'type' => \GraphQL::type($type),
             'description' => 'Associated content',
         ];
+    }
+
+    public static function paginate(string $typeName, string $customName = null): GraphQLType
+    {
+        return GraphQL::paginate($typeName, $customName);
+    }
+
+    public static function cursorPaginate(string $typeName, string $customName = null): GraphQLType
+    {
+        $name = $customName ?: $typeName . 'CursorPagination';
+
+        $paginationType = config('graphql.cursor_pagination_type', CursorPaginationType::class);
+        return GraphQL::wrapType($typeName, $name, $paginationType);
     }
 
     public static function contentTypeField($name, $type = 'ContentTypeEnum', array $fieldExtra = []): array
