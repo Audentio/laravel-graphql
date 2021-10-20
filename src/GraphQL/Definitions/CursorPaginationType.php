@@ -79,18 +79,6 @@ class CursorPaginationType extends ObjectType
                     return $return;
                 }
             ],
-//            'cursor' => [
-//                'type'          => GraphQLType::nonNull(GraphQLType::string()),
-//                'description'   => 'Current page of the cursor',
-//                'resolve'       => function(CursorPaginator $data) { return $data->cursor(); },
-//                'selectable'    => false,
-//            ],
-            'next_cursor' => [
-                'type'          => GraphQLType::nonNull(GraphQLType::string()),
-                'description'   => 'Current page of the cursor',
-                'resolve'       => function(CursorPaginator $data) { return $data->nextCursor(); },
-                'selectable'    => false,
-            ],
         ];
     }
 }
