@@ -24,7 +24,13 @@ class LaravelGraphQL
 
     const QUERIES_EXECUTED_DEBUG_IDENTIFIER = 'audentioLaravelGraphQLQueriesExecuted';
 
-    protected static $debugEnabled = false;
+    protected static bool $debugEnabled = false;
+
+    protected static array $registeredSchema = [
+        'queries' => [],
+        'mutations' => [],
+        'types' => [],
+    ];
 
     public static function getTagsForGraphQLRequest(Request $request): array
     {
@@ -58,9 +64,9 @@ class LaravelGraphQL
     public static function getDefaultSchema(): array
     {
         $schema = [
-            'queries' => [],
-            'types' => [],
-            'mutations' => [],
+            'queries' => self::$registeredSchema['queries'],
+            'types' => self::$registeredSchema['types'],
+            'mutations' => self::$registeredSchema['mutations'],
         ];
 
         if (self::isDebugEnabled()) {
@@ -74,6 +80,42 @@ class LaravelGraphQL
     public static function isDebugEnabled(): bool
     {
         return config('audentioGraphQL.enableDebug');
+    }
+
+    public static function registerTypes(array $types): void
+    {
+        foreach ($types as $typeName => $class) {
+            self::registerType($typeName, $class);
+        }
+    }
+
+    public static function registerType(string $typeName, string $class): void
+    {
+        static::$registeredSchema['types'][$typeName] = $class;
+    }
+
+    public static function registerQueries(array $queries): void
+    {
+        foreach ($queries as $queryName => $class) {
+            self::registerQuery($queryName, $class);
+        }
+    }
+
+    public static function registerQuery(string $queryName, string $class): void
+    {
+        static::$registeredSchema['queries'][$queryName] = $class;
+    }
+
+    public static function registerMutations(array $mutations): void
+    {
+        foreach ($mutations as $mutationName => $class) {
+            self::registerMutation($mutationName, $class);
+        }
+    }
+
+    public static function registerMutation(string $mutationName, string $class): void
+    {
+        static::$registeredSchema['mutations'][$mutationName] = $class;
     }
 
     public static function addContentTypeMorphFields(array &$fields, $name = 'content', bool $withRelation = true,
