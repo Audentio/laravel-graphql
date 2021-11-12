@@ -152,10 +152,12 @@ trait FilterableQueryTrait
                 throw new InvalidParameterError('The ' . $key . ' filter is not an input type.');
             }
 
+            $hasOperatorDefaultValue = config('audentioGraphQL.filterDefaultHasOperatorValue', false);
+
             $filterableField = array_merge([
                 'graphQLType' => $graphQLType,
                 'canFilter' => isset($filterableField['canFilter']) ? $filterableField['canFilter'] : true,
-                'hasOperator' => isset($filterableField['hasOperator']) ? $filterableField['hasOperator'] : true,
+                'hasOperator' => isset($filterableField['hasOperator']) ? $filterableField['hasOperator'] : $hasOperatorDefaultValue,
             ], $filterableField);
 
             $preparedFields[$filterableField['field']] = $filterableField;

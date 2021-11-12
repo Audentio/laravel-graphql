@@ -19,4 +19,10 @@ return [
      * associated model automatically.
      */
     'enableTypeModel' => true,
+
+    /*
+     * Sets the default value for `hasOperator` on filters. The old value was 'true'
+     * so this may need adjusted on legacy applications when upgrading the library.
+     */
+    'filterDefaultHasOperatorValue' => false,
 ];
