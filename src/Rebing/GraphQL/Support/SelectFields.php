@@ -2,6 +2,8 @@
 
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Support;
 
+use App\Models\UserGroup;
+use Audentio\LaravelBase\Foundation\AbstractPivot;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\PaginationType;
 use Closure;
@@ -70,11 +72,17 @@ class SelectFields extends SelectFieldsBase
             return;
         }
 
+        if (!$thisType instanceof ObjectType) {
+            return;
+        }
+
         self::recurseTypeForWith($thisType, '', $requestedFields['fields'], $with);
     }
 
     protected static function recurseTypeForWith(ObjectType $type, string $objectTree, array $fields, array &$with): void
     {
+        $model = $type->config['model'] ?? null;
+
         foreach ($fields as $key => $field) {
             // Ignore __typename, as it's a special case
             if ('__typename' === $key) {
@@ -93,6 +101,9 @@ class SelectFields extends SelectFieldsBase
                 continue;
             }
 
+            if (!$model) {
+                return;
+            }
             if (array_key_exists('with', $fieldDefinition->config)) {
                 $fieldWith = $fieldDefinition->config['with'];
                 if (!is_array($fieldWith)) {
@@ -100,8 +111,13 @@ class SelectFields extends SelectFieldsBase
                 }
 
                 foreach ($fieldWith as $item) {
-                    if (!in_array($item, $with)) {
-                        $with[] = $objectTree . $item;
+                    if (!method_exists($item, $model)) {
+                        continue;
+                    }
+
+                    $fullItem = $objectTree . $item;
+                    if (!in_array($fullItem, $with)) {
+                        $with[] = $fullItem;
                     }
                 }
             }
