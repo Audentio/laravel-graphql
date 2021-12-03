@@ -13,8 +13,10 @@ use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphqlType;
+use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
 use Rebing\GraphQL\Support\SelectFields as SelectFieldsBase;
+use Rebing\GraphQL\Support\SimplePaginationType;
 
 class SelectFields extends SelectFieldsBase
 {
@@ -45,9 +47,17 @@ class SelectFields extends SelectFieldsBase
             return [$select, $with];
         }
 
-        return function ($query) use ($with, $select, $customQuery, $requestedFields, $ctx): void {
+        return function ($query) use ($with, $select, $customQuery, $requestedFields, $parentType, $ctx): void {
             if ($customQuery) {
                 $query = $customQuery($requestedFields['args'], $query, $ctx);
+            }
+
+            foreach ($requestedFields['fields'] as $key => $field) {
+                if (!is_array($field)) {
+                    continue;
+                }
+
+                static::recurseFieldForWith($key, $field, $parentType, $with);
             }
 
 //            $query->select($select);
@@ -55,45 +65,64 @@ class SelectFields extends SelectFieldsBase
         };
     }
 
-    protected static function handleFields(array $queryArgs, array $requestedFields, GraphqlType $parentType,
-                                           array &$select, array &$with, $ctx): void
+    protected static function recurseFieldForWith(string $key, array $fieldData, GraphqlType $parentType, array &$with): void
     {
-        parent::handleFields($queryArgs, $requestedFields, $parentType, $select, $with, $ctx);
-        $parentTable = static::getTableNameFromParentType($parentType);
-        $select = [$parentTable ? ($parentTable . '.' . '*') : '*'];
-
-        $thisType = $parentType;
-        if ($thisType instanceof ListOfType) {
-            $thisType = $thisType->getOfType();
-        }
-
-        if ($thisType instanceof CursorPaginationType
-            || $thisType instanceof PaginationType) {
+        if ($key === '__typename') {
             return;
         }
 
-        if (!$thisType instanceof ObjectType) {
+        /** @var FieldDefinition $field */
+        $field = $parentType->getField($key);
+        $type = $field->getType();
+        if ($type instanceof WrappingType) {
+            $type = $type->getWrappedType(true);
+        }
+
+        if (!$type instanceof ObjectType) {
             return;
         }
 
-        self::recurseTypeForWith($thisType, '', $requestedFields['fields'], $with);
+        $fieldConfig = $field->config ?? [];
+        if (!empty($fieldConfig['with'])) {
+            if (!is_array($fieldConfig['with'])) {
+                $fieldConfig['with'] = [$fieldConfig['with']];
+            }
+
+            foreach ($fieldConfig['with'] as $item) {
+                if (!in_array($item, $with)) {
+                    $with[] = $item;
+                }
+            }
+        }
     }
 
-    protected static function recurseTypeForWith(ObjectType $type, string $objectTree, array $fields, array &$with): void
-    {
-        $model = $type->config['model'] ?? null;
+    protected static function handleFields(
+        array $queryArgs,
+        array $requestedFields,
+        GraphqlType $parentType,
+        array &$select,
+        array &$with,
+        $ctx
+    ): void {
+        $parentTable = static::isMongodbInstance($parentType) ? null : static::getTableNameFromParentType($parentType);
 
-        foreach ($fields as $key => $field) {
+        foreach ($requestedFields['fields'] as $key => $field) {
             // Ignore __typename, as it's a special case
             if ('__typename' === $key) {
                 continue;
             }
 
+            // Always select foreign key
+            if ($field === static::ALWAYS_RELATION_KEY) {
+                static::addFieldToSelect($key, $select, $parentTable, false);
+
+                continue;
+            }
+
             // If field doesn't exist on definition we don't select it
             try {
-                if (method_exists($type, 'getField')) {
-                    /** @var FieldDefinition $fieldDefinition */
-                    $fieldDefinition = $type->getField($key);
+                if (method_exists($parentType, 'getField')) {
+                    $fieldObject = $parentType->getField($key);
                 } else {
                     continue;
                 }
@@ -101,46 +130,103 @@ class SelectFields extends SelectFieldsBase
                 continue;
             }
 
-            if (!$model) {
-                return;
+            $parentTypeUnwrapped = $parentType;
+
+            if ($parentTypeUnwrapped instanceof WrappingType) {
+                $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
             }
-            if (array_key_exists('with', $fieldDefinition->config)) {
-                $fieldWith = $fieldDefinition->config['with'];
-                if (!is_array($fieldWith)) {
-                    $fieldWith = [$fieldWith];
+
+            // First check if the field is even accessible
+            $canSelect = static::validateField($fieldObject, $queryArgs, $ctx);
+
+            if (true === $canSelect) {
+                // Add a query, if it exists
+                $customQuery = $fieldObject->config['query'] ?? null;
+
+                // Check if the field is a relation that needs to be requested from the DB
+                $queryable = static::isQueryable($fieldObject->config);
+
+                // Pagination
+                if (is_a($parentType, config('graphql.pagination_type', \Rebing\GraphQL\Support\PaginationType::class)) ||
+                    is_a($parentType, config('graphql.simple_pagination_type', SimplePaginationType::class)) ||
+                    is_a($parentType, CursorPaginationType::class)
+                ) {
+                    /* @var GraphqlType $fieldType */
+                    $fieldType = $fieldObject->config['type'];
+                    static::handleFields(
+                        $queryArgs,
+                        $field,
+                        $fieldType->getWrappedType(),
+                        $select,
+                        $with,
+                        $ctx
+                    );
                 }
+                // With
+                elseif (is_array($field['fields']) && $queryable) {
+                    if (isset($parentType->config['model'])) {
+                        // Get the next parent type, so that 'with' queries could be made
+                        // Both keys for the relation are required (e.g 'id' <-> 'user_id')
+                        $relationsKey = $fieldObject->config['alias'] ?? $key;
+                        $relation = call_user_func([app($parentType->config['model']), $relationsKey]);
 
-                foreach ($fieldWith as $item) {
-                    if (!method_exists($item, $model)) {
-                        continue;
-                    }
+                        static::handleRelation($select, $relation, $parentTable, $field);
 
-                    $fullItem = $objectTree . $item;
-                    if (!in_array($fullItem, $with)) {
-                        $with[] = $fullItem;
+                        // New parent type, which is the relation
+                        $newParentType = $parentType->getField($key)->config['type'];
+
+                        static::addAlwaysFields($fieldObject, $field, $parentTable, true);
+
+                        $with[$relationsKey] = static::getSelectableFieldsAndRelations(
+                            $queryArgs,
+                            $field,
+                            $newParentType,
+                            $customQuery,
+                            false,
+                            $ctx
+                        );
+                    } elseif (is_a($parentTypeUnwrapped, \GraphQL\Type\Definition\InterfaceType::class)) {
+                        static::handleInterfaceFields(
+                            $queryArgs,
+                            $field,
+                            $parentTypeUnwrapped,
+                            $select,
+                            $with,
+                            $ctx,
+                            $fieldObject,
+                            $key,
+                            $customQuery
+                        );
+                    } else {
+                        static::handleFields($queryArgs, $field, $fieldObject->config['type'], $select, $with, $ctx);
                     }
                 }
+                // Select
+                else {
+                    $key = $fieldObject->config['alias']
+                        ?? $key;
+                    $key = $key instanceof Closure ? $key() : $key;
+
+                    static::addFieldToSelect($key, $select, $parentTable, false);
+
+                    static::addAlwaysFields($fieldObject, $select, $parentTable);
+                }
             }
-
-            $subType = static::getObjectTypeForField($fieldDefinition);
-            if ($subType && !empty($field['fields'])) {
-                self::recurseTypeForWith($subType, $objectTree . $key . '.', $field['fields'], $with);
+            // If privacy does not allow the field, return it as null
+            elseif (null === $canSelect) {
+                $fieldObject->resolveFn = function (): void {
+                };
+            }
+            // If allowed field, but not selectable
+            elseif (false === $canSelect) {
+                static::addAlwaysFields($fieldObject, $select, $parentTable);
             }
         }
-    }
 
-    protected static function getObjectTypeForField(FieldDefinition $fieldDefinition): ?ObjectType
-    {
-        /** @var ObjectType $type */
-        $type = $fieldDefinition->getType();
-        if (method_exists($type, 'getOfType')) {
-            $type = $type->getOfType();
+        // If parent type is an union or interface we select all fields
+        // because we don't know which other fields are required
+        if (is_a($parentType, UnionType::class) || is_a($parentType, \GraphQL\Type\Definition\InterfaceType::class)) {
+            $select = ['*'];
         }
-
-        if (method_exists($type, 'getFields')) {
-            return $type;
-        }
-
-        return null;
     }
 }
