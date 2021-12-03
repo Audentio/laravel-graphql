@@ -71,6 +71,10 @@ class SelectFields extends SelectFieldsBase
             return;
         }
 
+        // Temporary fix for union types
+        if (!method_exists($parentType, 'getField')) {
+            return;
+        }
         /** @var FieldDefinition $field */
         $field = $parentType->getField($key);
         $type = $field->getType();
