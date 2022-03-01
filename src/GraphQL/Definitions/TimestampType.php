@@ -5,6 +5,7 @@ namespace Audentio\LaravelGraphQL\GraphQL\Definitions;
 use Carbon\Carbon;
 use GraphQL\Language\AST\StringValueNode;
 use GraphQL\Type\Definition\ScalarType;
+use GraphQL\Type\Definition\Type;
 use GraphQL\Utils\Utils;
 
 class TimestampType extends ScalarType
@@ -21,8 +22,9 @@ class TimestampType extends ScalarType
      */
     public $description = "Conversion of Carbon object into Atom timestamp";
 
-    public function __construct()
+    public function __construct(string $name = 'Timestamp')
     {
+        $this->name = $name;
         parent::__construct();
 
         Utils::invariant($this->name, 'Type must be named.');
@@ -51,6 +53,11 @@ class TimestampType extends ScalarType
     public function parseLiteral($valueNode, ?array $variables = null)
     {
         return $this->toAtomString($valueNode);
+    }
+
+    public function toType(): Type
+    {
+        return static::type();
     }
 
     protected function toAtomString($value)

@@ -83,22 +83,18 @@ abstract class Query extends BaseQuery
             // 2 - the "GraphQL query context" (see \Rebing\GraphQL\GraphQLController::queryContext)
             // 3 - \GraphQL\Type\Definition\ResolveInfo as provided by the underlying GraphQL PHP library
             // 4 (!) - added by this library, encapsulates creating a `SelectFields` instance
-            $arguments = func_get_args();
+            $arguments = \func_get_args();
 
             // Validate mutation arguments
             $args = $arguments[1];
 
             $rules = $this->getRules($args);
 
-            if (count($rules)) {
-                $validator = $this->getValidator($args, $rules);
-
-                if ($validator->fails()) {
-                    throw new ValidationError('validation', $validator);
-                }
+            if ($rules) {
+                $this->validateArguments($args, $rules);
             }
 
-            $fieldsAndArguments = (new ResolveInfoFieldsAndArguments($arguments[3]))->getFieldsAndArgumentsSelection($this->depth);
+            $fieldsAndArguments = $arguments[3]->lookAhead()->queryPlan();
 
             // Validate arguments in fields
             $this->validateFieldArguments($fieldsAndArguments);
@@ -106,32 +102,32 @@ abstract class Query extends BaseQuery
             $arguments[1] = $this->getArgs($arguments);
 
             // Authorize
-            if (true != call_user_func_array($authorize, $arguments)) {
+            if (true != \call_user_func_array($authorize, $arguments)) {
                 throw new AuthorizationError($this->getAuthorizationMessage());
             }
 
             $method = new \ReflectionMethod($this, 'resolve');
 
-            $additionalParams = array_slice($method->getParameters(), 3);
+            $additionalParams = \array_slice($method->getParameters(), 3);
 
             $additionalArguments = array_map(function ($param) use ($arguments, $fieldsAndArguments) {
                 /** @var \ReflectionNamedType $paramType */
                 $paramType = $param->getType();
 
                 if ($paramType->isBuiltin()) {
-                    throw new \InvalidArgumentException("'{$param->name}' could not be injected");
+                    throw new InvalidArgumentException("'$param->name' could not be injected");
                 }
 
-                $className = $param->getType()->getName();
+                $className = $paramType->getName();
 
                 if (Closure::class === $className) {
-                    return function (int $depth = null) use ($arguments, $fieldsAndArguments): SelectFields {
-                        return $this->instanciateOverrideSelectFields($arguments, $fieldsAndArguments, $depth);
+                    return function () use ($arguments, $fieldsAndArguments) {
+                        return $this->instanciateOverrideSelectFields($arguments, $fieldsAndArguments);
                     };
                 }
 
-                if (SelectFields::class === $className) {
-                    return $this->instanciateOverrideSelectFields($arguments, $fieldsAndArguments, null);
+                if ($this->selectFieldClass() === $className) {
+                    return $this->instanciateSelectFields($arguments, $fieldsAndArguments);
                 }
 
                 if (ResolveInfo::class === $className) {
@@ -141,7 +137,7 @@ abstract class Query extends BaseQuery
                 return app()->make($className);
             }, $additionalParams);
 
-            return call_user_func_array($resolver, array_merge(
+            return \call_user_func_array($resolver, array_merge(
                 [$arguments[0], $arguments[1], $arguments[2]],
                 $additionalArguments
             ));

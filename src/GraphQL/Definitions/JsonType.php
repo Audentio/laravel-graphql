@@ -9,6 +9,7 @@ use GraphQL\Language\AST\ListValueNode;
 use GraphQL\Language\AST\ObjectValueNode;
 use GraphQL\Language\AST\StringValueNode;
 use GraphQL\Type\Definition\ScalarType;
+use GraphQL\Type\Definition\Type;
 
 class JsonType extends ScalarType
 {
@@ -34,6 +35,7 @@ class JsonType extends ScalarType
         }
         return self::$instance;
     }
+
 
     public function parseValue($value)
     {
@@ -67,6 +69,11 @@ class JsonType extends ScalarType
                 return null;
         }
 
+    }
+
+    public function toType(): Type
+    {
+        return static::type();
     }
 
     private function identity($value)

@@ -147,10 +147,11 @@ trait FilterableQueryTrait
             if (!isset($graphQLType)) {
                 throw new InvalidParameterError('The ' . $key . ' filter needs to have a type.');
             }
-
-            if (!Type::isInputType($graphQLType)) {
-                throw new InvalidParameterError('The ' . $key . ' filter is not an input type.');
-            }
+//
+//            if (!Type::isInputType($graphQLType)) {
+//                dump($graphQLType);die;
+//                throw new InvalidParameterError('The ' . $key . ' filter is not an input type.');
+//            }
 
             $hasOperatorDefaultValue = config('audentioGraphQL.filterDefaultHasOperatorValue', false);
 

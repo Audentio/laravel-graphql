@@ -2,6 +2,8 @@
 
 namespace Audentio\LaravelGraphQL;
 
+use Audentio\LaravelGraphQL\GraphQL\Definitions\JsonType;
+use Audentio\LaravelGraphQL\GraphQL\Definitions\TimestampType;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Queries\Debug\DebugSqlQueriesQuery;
 use Audentio\LaravelGraphQL\GraphQL\Types\DebugSqlQueryType;
@@ -29,7 +31,10 @@ class LaravelGraphQL
     protected static array $registeredSchema = [
         'queries' => [],
         'mutations' => [],
-        'types' => [],
+        'types' => [
+            'Timestamp' => TimestampType::class,
+            'JsonType' => JsonType::class,
+        ],
     ];
 
     public static function getTagsForGraphQLRequest(Request $request): array

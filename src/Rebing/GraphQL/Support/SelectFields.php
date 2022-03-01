@@ -15,6 +15,7 @@ use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphqlType;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
+use Illuminate\Support\Facades\Config;
 use Rebing\GraphQL\Support\SelectFields as SelectFieldsBase;
 use Rebing\GraphQL\Support\SimplePaginationType;
 
@@ -49,7 +50,7 @@ class SelectFields extends SelectFieldsBase
 
         return function ($query) use ($with, $select, $customQuery, $requestedFields, $parentType, $ctx): void {
             if ($customQuery) {
-                $query = $customQuery($requestedFields['args'], $query, $ctx);
+                $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
             }
 
             foreach ($requestedFields['fields'] as $key => $field) {
@@ -151,8 +152,8 @@ class SelectFields extends SelectFieldsBase
                 $queryable = static::isQueryable($fieldObject->config);
 
                 // Pagination
-                if (is_a($parentType, config('graphql.pagination_type', \Rebing\GraphQL\Support\PaginationType::class)) ||
-                    is_a($parentType, config('graphql.simple_pagination_type', SimplePaginationType::class)) ||
+                if (is_a($parentType, Config::get('graphql.pagination_type', \Rebing\GraphQL\Support\PaginationType::class)) ||
+                    is_a($parentType, Config::get('graphql.simple_pagination_type', SimplePaginationType::class)) ||
                     is_a($parentType, CursorPaginationType::class)
                 ) {
                     /* @var GraphqlType $fieldType */
@@ -167,7 +168,7 @@ class SelectFields extends SelectFieldsBase
                     );
                 }
                 // With
-                elseif (is_array($field['fields']) && $queryable) {
+                elseif (\is_array($field['fields']) && !empty($field['fields']) && $queryable) {
                     if (isset($parentType->config['model'])) {
                         // Get the next parent type, so that 'with' queries could be made
                         // Both keys for the relation are required (e.g 'id' <-> 'user_id')
