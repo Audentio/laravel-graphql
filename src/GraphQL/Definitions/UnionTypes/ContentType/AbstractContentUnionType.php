@@ -4,6 +4,7 @@ namespace Audentio\LaravelGraphQL\GraphQL\Definitions\UnionTypes\ContentType;
 
 use Audentio\LaravelBase\Foundation\AbstractModel;
 use Audentio\LaravelBase\Utils\ContentTypeUtil;
+use GraphQL\GraphQL;
 use Rebing\GraphQL\Support\UnionType as BaseUnionType;
 
 abstract class AbstractContentUnionType extends BaseUnionType
@@ -29,12 +30,16 @@ abstract class AbstractContentUnionType extends BaseUnionType
         $contentTypes = [];
 
         foreach ($this->_getContentTypes() as $contentType) {
-            $contentType = ContentTypeUtil::getFriendlyContentTypeName($contentType);
-            if (!isset($availableTypes[$contentType])) {
+            $graphQLType = ContentTypeUtil::getContentTypeField('graphQLType')[$contentType] ?? null;
+            if (!empty($graphQLType)) {
+                $contentTypes[] = \GraphQL::type($graphQLType);
                 continue;
             }
 
-            $contentTypes[] = \GraphQL::type($contentType);
+            $contentType = ContentTypeUtil::getFriendlyContentTypeName($contentType);
+            if (isset($availableTypes[$contentType])) {
+                $contentTypes[] = \GraphQL::type($contentType);
+            }
         }
 
         return $contentTypes;
