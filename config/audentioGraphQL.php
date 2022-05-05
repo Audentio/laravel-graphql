@@ -25,4 +25,9 @@ return [
      * so this may need adjusted on legacy applications when upgrading the library.
      */
     'filterDefaultHasOperatorValue' => false,
+
+    /*
+     * Prefix to automatically prepend to type names.
+     */
+    'namePrefix' => '',
 ];

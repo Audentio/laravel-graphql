@@ -4,11 +4,11 @@ namespace Audentio\LaravelGraphQL\Providers;
 
 use Audentio\LaravelBase\Traits\ExtendServiceProviderTrait;
 use Audentio\LaravelGraphQL\GraphQL\Console\ConfigGraphqlCommand;
-use Audentio\LaravelGraphQL\GraphQL\Console\EnumMakeCommand;
 use Audentio\LaravelGraphQL\GraphQL\Console\ResourceMakeCommand;
 use Audentio\LaravelGraphQL\GraphQL\Debugger\QueriesExecutedDebugger;
 use Audentio\LaravelGraphQL\Illuminate\Foundation\Console\ModelMakeCommand;
 use Audentio\LaravelGraphQL\LaravelGraphQL;
+use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\EnumMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\MutationMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\QueryMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\TypeMakeCommand;
@@ -64,7 +64,7 @@ class GraphQLServiceProvider extends ServiceProvider
         $this->extendRebing();
         $this->extendBase();
 
-        $this->commands(EnumMakeCommand::class);
+//        $this->commands(EnumMakeCommand::class);
         $this->commands(ConfigGraphqlCommand::class);
         $this->commands(ResourceMakeCommand::class);
     }
@@ -76,6 +76,7 @@ class GraphQLServiceProvider extends ServiceProvider
 
     protected function extendRebing()
     {
+        $this->commands(EnumMakeCommand::class);
         $this->commands(TypeMakeCommand::class);
         $this->commands(MutationMakeCommand::class);
         $this->commands(QueryMakeCommand::class);

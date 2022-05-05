@@ -3,12 +3,14 @@
 namespace Audentio\LaravelGraphQL\GraphQL\Console;
 
 use Audentio\LaravelBase\Traits\ExtendConsoleCommandTrait;
+use Audentio\LaravelGraphQL\GraphQL\Console\Traits\GraphQLConsoleTrait;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\TypeMakeCommand;
 use Illuminate\Console\GeneratorCommand;
 
 class ResourceMakeCommand extends GeneratorCommand
 {
     use ExtendConsoleCommandTrait;
+    use GraphQLConsoleTrait;
 
     protected $signature = 'make:graphql:resource {name}';
     protected $description = 'Create a new GraphQL resource class';
@@ -21,7 +23,7 @@ class ResourceMakeCommand extends GeneratorCommand
 
     protected function qualifyClass($name)
     {
-        $name = $this->suffixCommandClass($name, 'Resource');
+        $name = $this->normalizeTypeName($name, 'Resource');
 
         return parent::qualifyClass($name);
     }
@@ -39,17 +41,21 @@ class ResourceMakeCommand extends GeneratorCommand
         $modelClass = '';
         $modelName = class_basename($name);
         $modelName = substr($modelName, 0, -8);
+        $typeName = $modelName;
+        if ($prefix = config('audentioGraphQL.namePrefix')) {
+            $modelName = substr($modelName, strlen($prefix));
+        }
 
         if (class_exists('App\Models\\' . $modelName)) {
             $modelClass = 'App\Models\\' . $modelName;
         }
 
-        $stub = $this->replaceModelName($stub, $modelName, $modelClass);
+        $stub = $this->replaceModelName($stub, $modelName, $modelClass, $typeName);
 
         return $stub;
     }
 
-    protected function replaceModelName(string $stub, string $modelName = null, string $modelClass = null): string
+    protected function replaceModelName(string $stub, ?string $modelName = null, ?string $modelClass = null, ?string $typeName = null): string
     {
         $replacements = [];
 
@@ -61,7 +67,7 @@ class ResourceMakeCommand extends GeneratorCommand
             $replacements['{modelClassName}'] = 'return null;';
         }
 
-        $replacements['{graphQLTypeName}'] = 'return \'' . $modelName . '\';';
+        $replacements['{graphQLTypeName}'] = 'return \'' . $typeName . '\';';
 
         $stub = str_replace(array_keys($replacements), array_values($replacements), $stub);
 

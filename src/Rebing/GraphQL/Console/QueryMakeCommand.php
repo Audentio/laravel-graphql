@@ -22,7 +22,7 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
 
     protected function qualifyClass($name)
     {
-        $name = $this->suffixCommandClass($name, 'Query');
+        $name = $this->normalizeTypeName($name, 'Query');
 
         return parent::qualifyClass($name);
     }
@@ -35,7 +35,6 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
         $stub = $this->replaceGraphQLType($stub, $name);
         $stub = $this->replaceArgs($stub, $name);
         $stub = $this->replaceRootDefinition($stub, $name);
-
 
         return $stub;
     }
@@ -71,6 +70,7 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
     protected function replaceGraphQLType($stub, $name)
     {
         $dataType = $this->getQueryDataType($name, true);
+        $typeName = $this->normalizeTypeName($dataType);
         $dataTypeSingular = $this->isDataTypeSingular($name);
 
         $modelClass = 'App\Models\\' . $dataType;
@@ -78,7 +78,7 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
         $replace = 'Type::listOf(Type::string())';
 
         if (class_exists($modelClass)) {
-            $replace = 'GraphQL::type(\'' . $dataType . '\')';
+            $replace = 'GraphQL::type(\'' . $typeName . '\')';
 
             if (!$dataTypeSingular) {
                 $replace = 'Type::listOf(' . $replace . ')';

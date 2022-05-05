@@ -9,8 +9,6 @@ use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
 
 class DummyClass extends Enum
 {
-    protected $enumObject = true;
-
     protected $attributes = [
         'name' => '{DummyType}',
         'description' => 'An enum type',

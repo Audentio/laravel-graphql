@@ -21,9 +21,24 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
 
     protected function qualifyClass($name)
     {
-        $name = $this->suffixCommandClass($name, 'Mutation');
+        $name = str_replace('/', '\\', $name);
+        $classParts = explode('\\', $name);
+        $className = array_pop($classParts);
 
-        return parent::qualifyClass($name);
+        $className = $this->suffixCommandClass($className, 'Mutation');
+
+        $actionName = $this->guessActionName($className);
+        preg_match_all('/((?:^|[A-Z])[a-z]+)/',$actionName,$matches);
+        $action = lcfirst(reset($matches[1]));
+
+
+        $actionPrefix = substr($className, 0, strlen($action));
+        $className = substr($className, strlen($action));
+        $className = $this->normalizeTypeName($className, 'Mutation', $actionPrefix);
+
+        $classParts[] = $className;
+
+        return parent::qualifyClass(implode('\\', $classParts));
     }
 
     protected function buildClass($name)
@@ -36,18 +51,24 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
         $stub = $this->replaceDataType($stub, $name);
         $stub = $this->replaceTypeClass($stub);
 
+        dump($stub);die;
         return $stub;
     }
 
     protected function replaceModelFields($stub, $name)
     {
         $dataType = $this->getDataType($name, 'Mutation');
-        $actionName = $this->guessActionName($name);
+        if ($prefix = config('audentioGraphQL.namePrefix')) {
+            $dataType = substr($dataType, strlen($prefix));
+        }
+        $actionName = $this->guessActionName($dataType . 'Mutation');
         preg_match_all('/((?:^|[A-Z])[a-z]+)/',$actionName,$matches);
         $action = lcfirst(reset($matches[1]));
         $dataTypeName = substr($dataType, strlen($action));
+        $prefixedDataTypeName = $this->normalizeTypeName($dataTypeName);
+
         $modelClass = 'App\Models\\' . $dataTypeName;
-        $resourceClass = 'App\GraphQL\Resources\\' . $dataTypeName . 'Resource';
+        $resourceClass = 'App\GraphQL\Resources\\' . $prefixedDataTypeName . 'Resource';
         $indent = '                        ';
         $replaceItems = [
             'modelInclude' => '',
@@ -60,7 +81,7 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
         }
         if (class_exists($resourceClass)) {
             $replaceItems['modelInclude'] .= "use {$resourceClass};\n";
-            $replaceItems['resourceReturn'] = 'return ' . $dataTypeName . 'Resource::class;';
+            $replaceItems['resourceReturn'] = 'return ' . $prefixedDataTypeName . 'Resource::class;';
         }
         if (class_exists($modelClass)) {
             $replaceItems['modelInclude'] .= "use {$modelClass};\n";

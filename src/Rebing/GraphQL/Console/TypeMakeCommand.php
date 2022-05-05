@@ -21,14 +21,9 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
 
     protected function qualifyClass($name)
     {
-        $name = $this->qualifyClassSuffix($name);
+        $name = $this->normalizeTypeName($name, 'Type');
 
         return parent::qualifyClass($name);
-    }
-
-    protected function qualifyClassSuffix($name)
-    {
-        return $this->suffixCommandClass($name, 'Type');
     }
 
     protected function buildClass($name)
@@ -43,6 +38,8 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
 
     protected function replaceModelFields($stub, $name)
     {
+        $nameParts = explode('\\', $name);
+        $typeName = array_pop($nameParts);
         $dataType = $this->getDataType($name, 'Type');
         $modelClass = 'App\Models\\' . $dataType;
         $indent = '            ';
@@ -50,7 +47,7 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
         $replaceItems = [
             'modelInclude' => '',
             'modelGraphQLFields' => '',
-            'DummyType' => $dataType,
+            'DummyType' => $typeName,
         ];
         if (class_exists($modelClass)) {
             $replaceItems['modelInclude'] = "use {$modelClass};\n";
