@@ -51,7 +51,6 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
         $stub = $this->replaceDataType($stub, $name);
         $stub = $this->replaceTypeClass($stub);
 
-        dump($stub);die;
         return $stub;
     }
 
