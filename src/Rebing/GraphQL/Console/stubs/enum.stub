@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DummyNamespace;
 
-{modelInclude}use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
+use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
 
 class DummyClass extends Enum
