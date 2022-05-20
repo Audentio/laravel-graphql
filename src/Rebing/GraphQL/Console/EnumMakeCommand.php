@@ -24,7 +24,6 @@ class EnumMakeCommand extends \Rebing\GraphQL\Console\EnumMakeCommand
     protected function buildClass($name)
     {
         $stub = parent::buildClass($name);
-        $stub = $this->replaceModelFields($stub, $name);
         $stub = $this->replaceTypeClass($stub);
 
 

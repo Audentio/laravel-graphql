@@ -21,7 +21,9 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
 
     protected function qualifyClass($name)
     {
+        $name = ltrim($name, '\\/');
         $name = str_replace('/', '\\', $name);
+
         $classParts = explode('\\', $name);
         $className = array_pop($classParts);
 
@@ -30,7 +32,6 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
         $actionName = $this->guessActionName($className);
         preg_match_all('/((?:^|[A-Z])[a-z]+)/',$actionName,$matches);
         $action = lcfirst(reset($matches[1]));
-
 
         $actionPrefix = substr($className, 0, strlen($action));
         $className = substr($className, strlen($action));

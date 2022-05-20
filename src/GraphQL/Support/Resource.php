@@ -2,6 +2,8 @@
 
 namespace Audentio\LaravelGraphQL\GraphQL\Support;
 
+use Illuminate\Support\Str;
+
 abstract class Resource
 {
     public function getTypeFields(): array
@@ -16,6 +18,19 @@ abstract class Resource
     {
         $prefix = ucfirst($prefix) ?? '';
         return $prefix . $this->getGraphQLTypeName();
+    }
+
+    public function getGraphQLTypeNameWithoutPrefix(): string
+    {
+        $typeName = $this->getGraphQLTypeName();
+
+        if ($prefix = config('audentioGraphQL.namePrefix')) {
+            if (Str::startsWith($typeName, $prefix)) {
+                $typeName = substr($typeName, strlen($prefix));
+            }
+        }
+
+        return $typeName;
     }
 
     abstract public function getExpectedModelClass(): ?string;

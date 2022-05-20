@@ -36,9 +36,16 @@ trait GraphQLConsoleTrait
             $name = $this->suffixCommandClass($name, $suffix);
         }
 
+        if ($extraPrefix && \Str::startsWith($name, $extraPrefix)) {
+            $name = substr($name, strlen($extraPrefix));
+        }
+
         $prefix = config('audentioGraphQL.namePrefix') ?? '';
+        if ($prefix && \Str::startsWith($name, $prefix)) {
+            $name = substr($name, strlen($prefix));
+        }
         if ($extraPrefix) {
-            $prefix = $prefix . $extraPrefix;
+            $prefix = $extraPrefix . $prefix;
         }
 
         if ($prefix) {

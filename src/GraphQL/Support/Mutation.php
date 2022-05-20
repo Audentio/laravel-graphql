@@ -26,7 +26,7 @@ abstract class Mutation extends BaseMutation
             'name' => lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()),
             'fields' => [
                 lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()) => [
-                    'name' => lcfirst($this->getResource()->getGraphQLTypeName()),
+                    'name' => lcfirst($this->getResource()->getGraphQLTypeNameWithoutPrefix()),
                     'type' => \GraphQL::type($this->getResource()->getGraphQLTypeName()),
                 ],
             ],
@@ -44,7 +44,7 @@ abstract class Mutation extends BaseMutation
 
         $fields = [];
 
-        $dataType = lcfirst($this->getResource()->getGraphQLTypeName());
+        $dataType = lcfirst($this->getResource()->getGraphQLTypeNameWithoutPrefix());
 
         $baseScope = $this->getResource()->getBaseScope($this->getActionType());
 
