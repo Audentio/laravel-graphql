@@ -76,10 +76,10 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
         $replacements = [];
 
         $resourceName = substr(class_basename($name), 0, -4) . 'Resource';
-        $resourceClass = '';
+        $resourceClass = 'App\GraphQL\Resources\\' . $resourceName;
 
-        if (class_exists('App\GraphQL\Resources\\' . $resourceName)) {
-            $resourceClass = 'App\GraphQL\Resources\\' . $resourceName;
+        if (!class_exists($resourceClass)) {
+            $this->call('make:graphql:resource', ['name' => $resourceName]);
         }
 
         if ($resourceClass) {
