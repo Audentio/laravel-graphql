@@ -70,6 +70,7 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
             $this->buildGeneralTypes(),
             $this->buildEnums(),
             $this->buildUnions(),
+            $this->buildScalars(),
             []
         );
 
@@ -85,6 +86,13 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
         $this->getRecursiveClasses($classes, $dir);
 
         return $this->formatResponse($classes, 'Type');
+    }
+
+    protected function buildScalars()
+    {
+        $dir = app_path('GraphQL/Scalars');
+        $this->getRecursiveClasses($classes, $dir);
+        return $this->formatResponse($classes, '');
     }
 
     protected function buildEnums()
