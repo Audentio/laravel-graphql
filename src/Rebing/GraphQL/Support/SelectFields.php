@@ -216,6 +216,7 @@ class SelectFields extends SelectFieldsBase
             }
             // If allowed field, but not selectable
             elseif (false === $canSelect) {
+                static::recurseFieldForWith($key, $field, $parentType, $with);
                 static::addAlwaysFields($fieldObject, $select, $parentTable);
             }
         }
