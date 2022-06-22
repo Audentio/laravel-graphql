@@ -61,8 +61,6 @@ class SelectFields extends SelectFieldsBase
                 static::recurseFieldForWith($key, $field, $parentType, $with);
             }
 
-            dump($with);
-
 //            $query->select($select);
             $query->with($with);
         };
