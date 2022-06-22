@@ -61,6 +61,8 @@ class SelectFields extends SelectFieldsBase
                 static::recurseFieldForWith($key, $field, $parentType, $with);
             }
 
+            dump($with);
+
 //            $query->select($select);
             $query->with($with);
         };
@@ -78,14 +80,6 @@ class SelectFields extends SelectFieldsBase
         }
         /** @var FieldDefinition $field */
         $field = $parentType->getField($key);
-        $type = $field->getType();
-        if ($type instanceof WrappingType) {
-            $type = $type->getWrappedType(true);
-        }
-
-        if (!$type instanceof ObjectType) {
-            return;
-        }
 
         $fieldConfig = $field->config ?? [];
         if (!empty($fieldConfig['with'])) {
