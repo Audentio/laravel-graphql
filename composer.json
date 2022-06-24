@@ -15,12 +15,8 @@
         "ext-openssl": "*",
         "audentio/laravel-base": "^1.1.1",
         "rebing/graphql-laravel": "^8",
-        "opis/closure": "dev-master"
+        "audentio/opis-closure-wrapper": "^0.0.1"
     },
-    "repositories": [{
-        "type": "vcs",
-        "url": "https://github.com/LukasWieditz/closure"
-    }],
     "autoload": {
         "psr-4": {
             "Audentio\\LaravelGraphQL\\": "src/"

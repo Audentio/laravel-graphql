@@ -7,6 +7,7 @@ use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
 use Illuminate\Support\Facades\Cache;
 use Rebing\GraphQL\GraphQL as BaseGraphQL;
+use Audentio\LaravelGraphQL\Opis\Closure\SerializableClosure;
 
 class GraphQL extends BaseGraphQL
 {
@@ -66,7 +67,7 @@ class GraphQL extends BaseGraphQL
             'typeInstances' => $this->typesInstances
         ];
 
-        $cacheContent = \Opis\Closure\serialize($cache);
+        $cacheContent = \Audentio\OpisClosureWrapper\serialize($cache);
         if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
             file_put_contents($this->getSchemaFileCacheName($schemaName), $cacheContent);
         } else {
@@ -101,7 +102,7 @@ class GraphQL extends BaseGraphQL
         }
 
         /** @var Schema $schema */
-        $cache = \Opis\Closure\unserialize($cacheContent);
+        $cache = \Audentio\OpisClosureWrapper\unserialize($cacheContent);
         $schema = $cache['schema'];
 
         $this->clearTypeInstances();
