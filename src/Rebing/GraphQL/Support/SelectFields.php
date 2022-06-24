@@ -5,7 +5,6 @@ namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Support;
 use App\Models\UserGroup;
 use Audentio\LaravelBase\Foundation\AbstractPivot;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
-use Audentio\LaravelGraphQL\GraphQL\Definitions\PaginationType;
 use Closure;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Type\Definition\FieldDefinition;

@@ -30,4 +30,26 @@ return [
      * Prefix to automatically prepend to type names.
      */
     'namePrefix' => '',
+
+    /**
+     * Defines whether the GraphQL schema will be stored in a cache or built on every request
+     */
+    'enableSchemaCache' => false,
+
+    /**
+     * Can be 'laravel' to use laravels default cache or 'file' to store to a file cache. File caching
+     * does not support expiry times.
+     */
+    'schemaCacheStorageMechanism' => 'laravel',
+
+    /**
+     * Path to the schema file cache data
+     */
+    'schemaFileCachePath' => __DIR__ . '/../storage/gqlSchema/',
+
+    /**
+     * The default TTL for automatic schema caches. Use graphql:build-schema-cache to create
+     * a persistent schema cache instead.
+     */
+    'schemaCacheTTL' => 300
 ];

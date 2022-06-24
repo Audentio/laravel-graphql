@@ -8,13 +8,19 @@ use Audentio\LaravelGraphQL\GraphQL\Console\ResourceMakeCommand;
 use Audentio\LaravelGraphQL\GraphQL\Debugger\QueriesExecutedDebugger;
 use Audentio\LaravelGraphQL\Illuminate\Foundation\Console\ModelMakeCommand;
 use Audentio\LaravelGraphQL\LaravelGraphQL;
+use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\BuildSchemaCacheCommand;
+use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\ClearSchemaCacheCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\EnumMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\MutationMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\QueryMakeCommand;
 use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\TypeMakeCommand;
+use Audentio\LaravelGraphQL\Rebing\GraphQL\GraphQL as GraphQL;
+use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
+use Rebing\GraphQL\GraphQL as BaseGraphQL;
 
 class GraphQLServiceProvider extends ServiceProvider
 {
@@ -80,6 +86,20 @@ class GraphQLServiceProvider extends ServiceProvider
         $this->commands(TypeMakeCommand::class);
         $this->commands(MutationMakeCommand::class);
         $this->commands(QueryMakeCommand::class);
+
+        $this->commands(BuildSchemaCacheCommand::class);
+        $this->commands(ClearSchemaCacheCommand::class);
+
+        $this->app->singleton(BaseGraphQL::class, function (Container $app): BaseGraphQL {
+            $config = $app->make(Repository::class);
+            $graphql = new GraphQL($app, $config);
+
+            $class = new \Rebing\GraphQL\GraphQLServiceProvider(app());
+            $method = new \ReflectionMethod($class, 'applySecurityRules');
+            $method->setAccessible(true);
+            $method->invoke($class, $config);
+            return $graphql;
+        });
     }
 
     protected function bootPublishes(): void
