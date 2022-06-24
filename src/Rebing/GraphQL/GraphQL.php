@@ -28,7 +28,7 @@ class GraphQL extends BaseGraphQL
 
     public function schema(?string $schemaName = null, bool $forceRefresh = false): Schema
     {
-        if(!$this->config->get('audentioGraphQL.enableSchemaCache')) {
+        if (!$this->config->get('audentioGraphQL.enableSchemaCache')) {
             return parent::schema($schemaName);
         }
 
@@ -66,22 +66,42 @@ class GraphQL extends BaseGraphQL
             'typeInstances' => $this->typesInstances
         ];
 
-        if ($duration === null) {
-            Cache::forever('gqlSchema.'.$schemaName, \Opis\Closure\serialize($cache));
+        $cacheContent = \Opis\Closure\serialize($cache);
+        if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
+            file_put_contents($this->getSchemaFileCacheName($schemaName), $cacheContent);
         } else {
-            Cache::put('gqlSchema.'.$schemaName, \Opis\Closure\serialize($cache), $duration);
+            if ($duration === null) {
+                Cache::forever('gqlSchema.'.$schemaName, $cacheContent);
+            } else {
+                Cache::put('gqlSchema.'.$schemaName, $cacheContent);
+            }
         }
+    }
+
+    protected function getSchemaFileCacheName(string $schemaName): string
+    {
+        return rtrim(config('audentioGraphQL.schemaFileCachePath'), '/').'/gqlSchema-'.$schemaName.'.dat';
     }
 
     protected function clearSchemaLaravelCache(string $schemaName): void
     {
-        Cache::forget('gqlSchema.'.$schemaName);
+        if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
+            unlink($this->getSchemaFileCacheName($schemaName));
+        } else {
+            Cache::forget('gqlSchema.'.$schemaName);
+        }
     }
 
     protected function buildSchemaFromLaravelCache(string $schemaName, array $schemaConfig)
     {
+        if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
+            $cacheContent = file_get_contents($this->getSchemaFileCacheName($schemaName));
+        } else {
+            $cacheContent = Cache::get('gqlSchema.'.$schemaName);
+        }
+
         /** @var Schema $schema */
-        $cache = \Opis\Closure\unserialize(Cache::get('gqlSchema.'.$schemaName));
+        $cache = \Opis\Closure\unserialize($cacheContent);
         $schema = $cache['schema'];
 
         $this->clearTypeInstances();
