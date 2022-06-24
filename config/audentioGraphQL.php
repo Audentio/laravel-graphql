@@ -30,4 +30,15 @@ return [
      * Prefix to automatically prepend to type names.
      */
     'namePrefix' => '',
+
+    /**
+     * Defines whether the GraphQL schema will be stored in a cache or built on every request
+     */
+    'enableSchemaCache' => true,
+
+    /**
+     * The default TTL for automatic schema caches. Use graphql:build-schema-cache to create
+     * a persistent schema cache instead.
+     */
+    'schemaCacheTTL' => 300
 ];

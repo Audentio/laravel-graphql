@@ -10,12 +10,17 @@
         }
     ],
     "require": {
-        "php": ">=7.3.0",
+        "php": ">=7.4",
         "ext-json": "*",
         "ext-openssl": "*",
         "audentio/laravel-base": "^1.1.1",
-        "rebing/graphql-laravel": "^8"
+        "rebing/graphql-laravel": "^8",
+        "opis/closure": "dev-master"
     },
+    "repositories": [{
+        "type": "vcs",
+        "url": "https://github.com/LukasWieditz/closure"
+    }],
     "autoload": {
         "psr-4": {
             "Audentio\\LaravelGraphQL\\": "src/"
