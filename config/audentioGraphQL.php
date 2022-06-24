@@ -34,7 +34,7 @@ return [
     /**
      * Defines whether the GraphQL schema will be stored in a cache or built on every request
      */
-    'enableSchemaCache' => true,
+    'enableSchemaCache' => false,
 
     /**
      * Can be 'laravel' to use laravels default cache or 'file' to store to a file cache. File caching
