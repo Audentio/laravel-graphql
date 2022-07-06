@@ -23,8 +23,7 @@ abstract class Type extends GraphQLType
             return null;
         }
 
-        $className = $this->getResourceClassName();
-        return new $className;
+        return Resource::getResourceInstance($this->getResourceClassName());
     }
 
     abstract protected function getResourceClassName(): ?string;

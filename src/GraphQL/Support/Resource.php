@@ -6,6 +6,8 @@ use Illuminate\Support\Str;
 
 abstract class Resource
 {
+    protected static $resourceInstances = [];
+
     public function getTypeFields(): array
     {
         return array_merge(
@@ -31,6 +33,19 @@ abstract class Resource
         }
 
         return $typeName;
+    }
+
+    public static function getResourceInstance(string $resourceClass): Resource
+    {
+        if (!array_key_exists($resourceClass, static::$resourceInstances)) {
+            if (!class_exists($resourceClass)) {
+                throw new \LogicException('Invalid resource class: ' . $resourceClass);
+            }
+            
+            static::$resourceInstances[$resourceClass] = new $resourceClass;
+        }
+
+        return static::$resourceInstances[$resourceClass];
     }
 
     abstract public function getExpectedModelClass(): ?string;
