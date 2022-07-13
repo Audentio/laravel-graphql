@@ -39,7 +39,7 @@ class GraphQL extends BaseGraphQL
             return $this->schemas[$schemaName];
         }
 
-        if (!$forceRefresh && Cache::has('gqlSchema.'.$schemaName)) {
+        if (!$forceRefresh && Cache::has('gqlSchema.' . $schemaName)) {
             $schemaConfig = static::getNormalizedSchemaConfiguration($schemaName);
             $schema = $this->buildSchemaFromLaravelCache($schemaName, $schemaConfig);
         } else {
@@ -72,16 +72,20 @@ class GraphQL extends BaseGraphQL
             file_put_contents($this->getSchemaFileCacheName($schemaName), $cacheContent);
         } else {
             if ($duration === null) {
-                Cache::forever('gqlSchema.'.$schemaName, $cacheContent);
+                Cache::forever('gqlSchema.' . $schemaName, $cacheContent);
             } else {
-                Cache::put('gqlSchema.'.$schemaName, $cacheContent);
+                Cache::put('gqlSchema.' . $schemaName, $cacheContent);
             }
         }
     }
 
     protected function getSchemaFileCacheName(string $schemaName): string
     {
-        return rtrim(config('audentioGraphQL.schemaFileCachePath'), '/').'/gqlSchema-'.$schemaName.'.dat';
+        $cachePath = config('audentioGraphQL.schemaFileCachePath');
+        if (!$cachePath) {
+            $cachePath = storage_path();
+        }
+        return rtrim($cachePath, '/') . '/gqlSchema-' . $schemaName . '.dat';
     }
 
     protected function clearSchemaLaravelCache(string $schemaName): void
@@ -89,7 +93,7 @@ class GraphQL extends BaseGraphQL
         if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
             unlink($this->getSchemaFileCacheName($schemaName));
         } else {
-            Cache::forget('gqlSchema.'.$schemaName);
+            Cache::forget('gqlSchema.' . $schemaName);
         }
     }
 
@@ -98,7 +102,7 @@ class GraphQL extends BaseGraphQL
         if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
             $cacheContent = file_get_contents($this->getSchemaFileCacheName($schemaName));
         } else {
-            $cacheContent = Cache::get('gqlSchema.'.$schemaName);
+            $cacheContent = Cache::get('gqlSchema.' . $schemaName);
         }
 
         /** @var Schema $schema */

@@ -45,7 +45,7 @@ return [
     /**
      * Path to the schema file cache data
      */
-    'schemaFileCachePath' => __DIR__ . '/../storage/gqlSchema/',
+    'schemaFileCachePath' => null,
 
     /**
      * The default TTL for automatic schema caches. Use graphql:build-schema-cache to create
