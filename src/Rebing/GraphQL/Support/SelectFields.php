@@ -3,14 +3,10 @@
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Support;
 
 use App\Models\UserGroup;
-use Audentio\LaravelBase\Foundation\AbstractPivot;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
 use Closure;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Type\Definition\FieldDefinition;
-use GraphQL\Type\Definition\ListOfType;
-use GraphQL\Type\Definition\NonNull;
-use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphqlType;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
@@ -73,6 +69,15 @@ class SelectFields extends SelectFieldsBase
 
         // Temporary fix for union types
         if (!method_exists($parentType, 'getField')) {
+            if($parentType instanceof UnionType) {
+                foreach ($parentType->getTypes() as $unionType) {
+                    try {
+                        self::recurseFieldForWith($key, $fieldData, $unionType, $with);
+                    } catch (InvariantViolation $e) {
+                        // Ignore invalid field errors for subtype
+                    }
+                }
+            }
             return;
         }
         /** @var FieldDefinition $field */
@@ -204,7 +209,7 @@ class SelectFields extends SelectFieldsBase
                     $key = $key instanceof Closure ? $key() : $key;
 
                     static::addFieldToSelect($key, $select, $parentTable, false);
-
+                    static::recurseFieldForWith($key, $field, $parentType, $with);
                     static::addAlwaysFields($fieldObject, $select, $parentTable);
                 }
             }
