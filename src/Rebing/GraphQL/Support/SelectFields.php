@@ -3,14 +3,10 @@
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Support;
 
 use App\Models\UserGroup;
-use Audentio\LaravelBase\Foundation\AbstractPivot;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
 use Closure;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Type\Definition\FieldDefinition;
-use GraphQL\Type\Definition\ListOfType;
-use GraphQL\Type\Definition\NonNull;
-use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphqlType;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
@@ -213,7 +209,7 @@ class SelectFields extends SelectFieldsBase
                     $key = $key instanceof Closure ? $key() : $key;
 
                     static::addFieldToSelect($key, $select, $parentTable, false);
-
+                    static::recurseFieldForWith($key, $field, $parentType, $with);
                     static::addAlwaysFields($fieldObject, $select, $parentTable);
                 }
             }
