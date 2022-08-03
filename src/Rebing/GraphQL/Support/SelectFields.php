@@ -73,6 +73,15 @@ class SelectFields extends SelectFieldsBase
 
         // Temporary fix for union types
         if (!method_exists($parentType, 'getField')) {
+            if($parentType instanceof UnionType) {
+                foreach ($parentType->getTypes() as $unionType) {
+                    try {
+                        self::recurseFieldForWith($key, $fieldData, $unionType, $with);
+                    } catch (InvariantViolation $e) {
+                        // Ignore invalid field errors for subtype
+                    }
+                }
+            }
             return;
         }
         /** @var FieldDefinition $field */
