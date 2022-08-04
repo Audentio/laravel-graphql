@@ -7,9 +7,11 @@ use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
 use Closure;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Type\Definition\FieldDefinition;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphqlType;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Facades\Config;
 use Rebing\GraphQL\Support\SelectFields as SelectFieldsBase;
 use Rebing\GraphQL\Support\SimplePaginationType;
@@ -48,20 +50,24 @@ class SelectFields extends SelectFieldsBase
                 $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
             }
 
+            $morphWith = [];
             foreach ($requestedFields['fields'] as $key => $field) {
                 if (!is_array($field)) {
                     continue;
                 }
 
-                static::recurseFieldForWith($key, $field, $parentType, $with);
+                static::recurseFieldForWith($key, $field, $parentType, $with, $morphWith);
             }
 
 //            $query->select($select);
             $query->with($with);
+            if($query instanceof MorphTo) {
+                $query->morphWith($morphWith);
+            }
         };
     }
 
-    protected static function recurseFieldForWith(string $key, array $fieldData, GraphqlType $parentType, array &$with): void
+    protected static function recurseFieldForWith(string $key, array $fieldData, GraphqlType $parentType, array &$with, ?array &$morphWith = []): void
     {
         if ($key === '__typename') {
             return;
@@ -72,7 +78,10 @@ class SelectFields extends SelectFieldsBase
             if($parentType instanceof UnionType) {
                 foreach ($parentType->getTypes() as $unionType) {
                     try {
-                        self::recurseFieldForWith($key, $fieldData, $unionType, $with);
+                        /** @var ObjectType $unionType */
+                        $subWith = [];
+                        self::recurseFieldForWith($key, $fieldData, $unionType, $subWith);
+                        $morphWith[$unionType->config['model']] = array_merge($morphWith[$unionType->config['model']] ?? [], $subWith);
                     } catch (InvariantViolation $e) {
                         // Ignore invalid field errors for subtype
                     }
