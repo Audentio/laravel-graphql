@@ -148,6 +148,7 @@ class SelectFields extends SelectFieldsBase
 
             // First check if the field is even accessible
             $canSelect = static::validateField($fieldObject, $queryArgs, $ctx);
+            static::recurseFieldForWith($key, $field, $parentType, $with);
 
             if (true === $canSelect) {
                 // Add a query, if it exists
@@ -218,7 +219,6 @@ class SelectFields extends SelectFieldsBase
                     $key = $key instanceof Closure ? $key() : $key;
 
                     static::addFieldToSelect($key, $select, $parentTable, false);
-                    static::recurseFieldForWith($key, $field, $parentType, $with);
                     static::addAlwaysFields($fieldObject, $select, $parentTable);
                 }
             }
@@ -229,7 +229,6 @@ class SelectFields extends SelectFieldsBase
             }
             // If allowed field, but not selectable
             elseif (false === $canSelect) {
-                static::recurseFieldForWith($key, $field, $parentType, $with);
                 static::addAlwaysFields($fieldObject, $select, $parentTable);
             }
         }
