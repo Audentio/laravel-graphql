@@ -45,12 +45,18 @@ class SelectFields extends SelectFieldsBase
             return [$select, $with];
         }
 
-        return function ($query) use ($with, $select, $customQuery, $requestedFields, $parentType, $ctx): void {
+        $morphWith = [];
+        if($parentType instanceof UnionType) {
+            foreach($parentType->getTypes() as $possibleType) {
+                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true);
+                $morphWith[$possibleType->config['model']] = $possibleTypeWith;
+            }
+        }
+        return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx): void {
             if ($customQuery) {
                 $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
             }
 
-            $morphWith = [];
             foreach ($requestedFields['fields'] as $key => $field) {
                 if (!is_array($field)) {
                     continue;
@@ -76,12 +82,12 @@ class SelectFields extends SelectFieldsBase
         // Temporary fix for union types
         if (!method_exists($parentType, 'getField')) {
             if($parentType instanceof UnionType) {
-                foreach ($parentType->getTypes() as $unionType) {
+                foreach ($parentType->getTypes() as $possibleType) {
                     try {
-                        /** @var ObjectType $unionType */
+                        /** @var ObjectType $possibleType */
                         $subWith = [];
-                        self::recurseFieldForWith($key, $fieldData, $unionType, $subWith);
-                        $morphWith[$unionType->config['model']] = array_merge($morphWith[$unionType->config['model']] ?? [], $subWith);
+                        self::recurseFieldForWith($key, $fieldData, $possibleType, $subWith);
+                        $morphWith[$possibleType->config['model']] = array_merge($morphWith[$possibleType->config['model']] ?? [], $subWith);
                     } catch (InvariantViolation $e) {
                         // Ignore invalid field errors for subtype
                     }
