@@ -3,17 +3,15 @@
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Support;
 
 use App\Models\UserGroup;
-use Audentio\LaravelBase\Foundation\AbstractPivot;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
 use Closure;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Type\Definition\FieldDefinition;
-use GraphQL\Type\Definition\ListOfType;
-use GraphQL\Type\Definition\NonNull;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphqlType;
 use GraphQL\Type\Definition\UnionType;
 use GraphQL\Type\Definition\WrappingType;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Facades\Config;
 use Rebing\GraphQL\Support\SelectFields as SelectFieldsBase;
 use Rebing\GraphQL\Support\SimplePaginationType;
@@ -47,7 +45,14 @@ class SelectFields extends SelectFieldsBase
             return [$select, $with];
         }
 
-        return function ($query) use ($with, $select, $customQuery, $requestedFields, $parentType, $ctx): void {
+        $morphWith = [];
+        if($parentType instanceof UnionType) {
+            foreach($parentType->getTypes() as $possibleType) {
+                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true);
+                $morphWith[$possibleType->config['model']] = $possibleTypeWith;
+            }
+        }
+        return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx): void {
             if ($customQuery) {
                 $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
             }
@@ -57,15 +62,18 @@ class SelectFields extends SelectFieldsBase
                     continue;
                 }
 
-                static::recurseFieldForWith($key, $field, $parentType, $with);
+                static::recurseFieldForWith($key, $field, $parentType, $with, $morphWith);
             }
 
 //            $query->select($select);
             $query->with($with);
+            if($query instanceof MorphTo) {
+                $query->morphWith($morphWith);
+            }
         };
     }
 
-    protected static function recurseFieldForWith(string $key, array $fieldData, GraphqlType $parentType, array &$with): void
+    protected static function recurseFieldForWith(string $key, array $fieldData, GraphqlType $parentType, array &$with, ?array &$morphWith = []): void
     {
         if ($key === '__typename') {
             return;
@@ -73,6 +81,18 @@ class SelectFields extends SelectFieldsBase
 
         // Temporary fix for union types
         if (!method_exists($parentType, 'getField')) {
+            if($parentType instanceof UnionType) {
+                foreach ($parentType->getTypes() as $possibleType) {
+                    try {
+                        /** @var ObjectType $possibleType */
+                        $subWith = [];
+                        self::recurseFieldForWith($key, $fieldData, $possibleType, $subWith);
+                        $morphWith[$possibleType->config['model']] = array_merge($morphWith[$possibleType->config['model']] ?? [], $subWith);
+                    } catch (InvariantViolation $e) {
+                        // Ignore invalid field errors for subtype
+                    }
+                }
+            }
             return;
         }
         /** @var FieldDefinition $field */
@@ -134,6 +154,7 @@ class SelectFields extends SelectFieldsBase
 
             // First check if the field is even accessible
             $canSelect = static::validateField($fieldObject, $queryArgs, $ctx);
+            static::recurseFieldForWith($key, $field, $parentType, $with);
 
             if (true === $canSelect) {
                 // Add a query, if it exists
@@ -204,7 +225,6 @@ class SelectFields extends SelectFieldsBase
                     $key = $key instanceof Closure ? $key() : $key;
 
                     static::addFieldToSelect($key, $select, $parentTable, false);
-
                     static::addAlwaysFields($fieldObject, $select, $parentTable);
                 }
             }
@@ -215,7 +235,6 @@ class SelectFields extends SelectFieldsBase
             }
             // If allowed field, but not selectable
             elseif (false === $canSelect) {
-                static::recurseFieldForWith($key, $field, $parentType, $with);
                 static::addAlwaysFields($fieldObject, $select, $parentTable);
             }
         }
