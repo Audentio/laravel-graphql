@@ -10,11 +10,18 @@ class AbstractError extends \Exception
 {
     protected $resolveInfo;
     protected $errorType = null;
+    protected ?array $extraData;
 
-    public function __construct(string $message, ResolveInfo $info = null)
+    public function __construct(string $message, ResolveInfo $info = null, ?array $extraData = null)
     {
-        \Exception::__construct($message);
+        parent::__construct($message);
         $this->resolveInfo = $info;
+        $this->extraData = $extraData;
+    }
+
+    public function getExtraData(): ?array
+    {
+        return $this->extraData;
     }
 
     public function getResolveInfo()
