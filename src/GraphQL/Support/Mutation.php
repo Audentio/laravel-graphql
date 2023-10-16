@@ -22,14 +22,24 @@ abstract class Mutation extends BaseMutation
 
     public function type(): GraphqlType
     {
+        $fields = [
+            lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()) => [
+                'name' => lcfirst($this->getResource()->getGraphQLTypeNameWithoutPrefix()),
+                'type' => \GraphQL::type($this->getResource()->getGraphQLTypeName()),
+            ],
+        ];
+
+        if ($this->getReturnedMutationAction()) {
+            $mutationActionKey = lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName() . 'MutationAction');
+            $fields[$mutationActionKey] = [
+                'name' => 'mutationAction',
+                'type' => \GraphQL::type('MutationActionEnum'),
+            ];
+        }
+
         return new ObjectType([
             'name' => lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()),
-            'fields' => [
-                lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()) => [
-                    'name' => lcfirst($this->getResource()->getGraphQLTypeNameWithoutPrefix()),
-                    'type' => \GraphQL::type($this->getResource()->getGraphQLTypeName()),
-                ],
-            ],
+            'fields' => $fields,
         ]);
     }
 
@@ -160,8 +170,25 @@ abstract class Mutation extends BaseMutation
                 throw new AuthorizationError('Unauthorized');
             }
 
-            return call_user_func_array($resolver, $arguments);
+            $return = call_user_func_array($resolver, $arguments);
+
+            if (is_array($return)) {
+                $return['mutationAction'] = $this->getReturnedMutationAction();
+            }
+            return $return;
         };
+    }
+
+    public function getReturnedMutationAction(): ?string
+    {
+        switch ($this->getActionType()) {
+            case 'create':
+            case 'delete':
+            case 'update':
+                return $this->getActionType();
+        }
+
+        return null;
     }
 
     abstract protected function getActionType(): string;

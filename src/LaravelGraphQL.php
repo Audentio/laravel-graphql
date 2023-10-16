@@ -2,6 +2,7 @@
 
 namespace Audentio\LaravelGraphQL;
 
+use Audentio\LaravelGraphQL\GraphQL\Definitions\Enums\MutationActionEnum;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\JsonType;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\TimestampType;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
@@ -34,8 +35,17 @@ class LaravelGraphQL
         'types' => [
             'Timestamp' => TimestampType::class,
             'JsonType' => JsonType::class,
+            'MutationActionEnum' => MutationActionEnum::class,
         ],
+        'additionalMutationActionEnumValues' => [],
     ];
+
+    public static function getMutationActionEnumValues(): array
+    {
+        return array_merge(self::$registeredSchema['additionalMutationActionEnumValues'], [
+            MutationActionEnum::DEFAULT_VALUES,
+        ]);
+    }
 
     public static function getTagsForGraphQLRequest(Request $request): array
     {
@@ -86,6 +96,24 @@ class LaravelGraphQL
     {
         return config('audentioGraphQL.enableDebug');
     }
+
+    public static function registerAdditionalMutationActionEnumValues(array $values): void
+    {
+        foreach ($values as $value) {
+            static::registerAdditionalMutationActionEnumValue($value);
+        }
+    }
+
+    public static function registerAdditionalMutationActionEnumValue(string $value): void
+    {
+        if (in_array($value, static::$registeredSchema['additionalMutationActionEnumValues'])) {
+            return;
+        }
+
+        static::$registeredSchema['additionalMutationActionEnumValues'][] = $value;
+    }
+
+
 
     public static function registerTypes(array $types): void
     {
