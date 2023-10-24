@@ -42,9 +42,8 @@ class LaravelGraphQL
 
     public static function getMutationActionEnumValues(): array
     {
-        return array_merge(self::$registeredSchema['additionalMutationActionEnumValues'], [
-            MutationActionEnum::DEFAULT_VALUES,
-        ]);
+        return array_merge(self::$registeredSchema['additionalMutationActionEnumValues'],
+            MutationActionEnum::DEFAULT_VALUES);
     }
 
     public static function getTagsForGraphQLRequest(Request $request): array
