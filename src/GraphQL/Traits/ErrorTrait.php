@@ -32,9 +32,20 @@ trait ErrorTrait
                 break;
 
             case LaravelGraphQL::ERR_PERMISSION:
+                $this->permissionError($info, $error);
+                break;
+
             default:
+                if (class_exists($errorType)) {
+                    $this->customError($errorType, $info, $error);
+                }
                 $this->permissionError($info, $error);
         }
+    }
+
+    public function customError(string $className, ResolveInfo $info = null, mixed $message = null): void
+    {
+        throw new $className($message, $info);
     }
 
     /**
