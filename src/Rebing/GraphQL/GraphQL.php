@@ -2,6 +2,7 @@
 
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL;
 
+use Audentio\LaravelGraphQL\Utils\ServerTimingUtil;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
@@ -29,16 +30,26 @@ class GraphQL extends BaseGraphQL
 
     public function schema(?string $schemaName = null, bool $forceRefresh = false): Schema
     {
+        $suffixKey = substr(md5(rand(0,1000)), 0, 5);
+        $timingKey = 'GraphQL:loadSchema:' . $suffixKey;
         if (!$this->config->get('audentioGraphQL.enableSchemaCache')) {
-            return parent::schema($schemaName);
+            ServerTimingUtil::start($timingKey);
+            $return = parent::schema($schemaName);
+            ServerTimingUtil::stop($timingKey);
+
+            return $return;
         }
 
         $schemaName = $schemaName ?? $this->config->get('graphql.default_schema', 'default');
 
         if (isset($this->schemas[$schemaName])) {
-            return $this->schemas[$schemaName];
+            ServerTimingUtil::start($timingKey);
+            $return = $this->schemas[$schemaName];
+            ServerTimingUtil::stop($timingKey);
+            return $return;
         }
 
+        ServerTimingUtil::start($timingKey);
         if (!$forceRefresh && Cache::has('gqlSchema.' . $schemaName)) {
             $schemaConfig = static::getNormalizedSchemaConfiguration($schemaName);
             $schema = $this->buildSchemaFromLaravelCache($schemaName, $schemaConfig);
@@ -46,6 +57,7 @@ class GraphQL extends BaseGraphQL
             $schema = parent::schema($schemaName);
             $this->storeSchemaInLaravelCache($schemaName, $schema, $this->config->get('audentioGraphQL.schemaCacheTTL'));
         }
+        ServerTimingUtil::stop($timingKey);
 
         return $schema;
     }
