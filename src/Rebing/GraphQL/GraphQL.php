@@ -138,7 +138,6 @@ class GraphQL extends BaseGraphQL
 
         /** @var Schema $schema */
         $cache = \unserialize($cacheContent);
-        $cache = Native::unwrapClosures($cache);
 
         $schema = $cache['schema'];
 
