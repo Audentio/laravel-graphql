@@ -32,6 +32,8 @@ class GraphQLServiceProvider extends ServiceProvider
             $this->bootConsole();
         }
 
+        $this->extendRebing();
+        $this->extendBase();
         $this->bootPublishes();
         $this->bootDebug();
     }
@@ -67,8 +69,6 @@ class GraphQLServiceProvider extends ServiceProvider
 
     protected function bootConsole()
     {
-        $this->extendRebing();
-        $this->extendBase();
 
 //        $this->commands(EnumMakeCommand::class);
         $this->commands(ConfigGraphqlCommand::class);
