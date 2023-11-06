@@ -29,7 +29,7 @@ trait CustomResolveHandlingTrait
                     // CUSTOM: Start time tracking
                     /** @var ResolveInfo $info */
                     $info = $arguments[3];
-                    $key = 'GraphQL:' . $info->parentType->name . ':' . $info->path[0] ?? 'undefined';
+                    $key = 'GQL:' . substr($info->parentType->name, 0, 1) . ':' . $info->path[0] ?? 'undefined';
                     ServerTimingUtil::start($key);
                     // END CUSTOM: Start time tracking
                     $result = $resolver($root, ...\array_slice($arguments, 1));
