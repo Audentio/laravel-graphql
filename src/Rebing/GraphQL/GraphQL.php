@@ -2,13 +2,12 @@
 
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL;
 
-use Audentio\LaravelGraphQL\Utils\ServerTimingUtil;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
 use Illuminate\Support\Facades\Cache;
+use Laravel\SerializableClosure\Serializers\Native;
 use Rebing\GraphQL\GraphQL as BaseGraphQL;
-use Audentio\LaravelGraphQL\Opis\Closure\SerializableClosure;
 
 class GraphQL extends BaseGraphQL
 {
@@ -28,40 +27,51 @@ class GraphQL extends BaseGraphQL
         $instance->clearSchemaLaravelCache($schemaName);
     }
 
+    /**
+     * @param string|null $schemaName
+     * @param bool $forceRefresh
+     * @return Schema
+     * @throws \ReflectionException
+     */
     public function schema(?string $schemaName = null, bool $forceRefresh = false): Schema
     {
-        $suffixKey = substr(md5(rand(0,1000)), 0, 5);
-        $timingKey = 'GraphQL:loadSchema:' . $suffixKey;
         if (!$this->config->get('audentioGraphQL.enableSchemaCache')) {
-            ServerTimingUtil::start($timingKey);
-            $return = parent::schema($schemaName);
-            ServerTimingUtil::stop($timingKey);
-
-            return $return;
+            return parent::schema($schemaName);
         }
 
         $schemaName = $schemaName ?? $this->config->get('graphql.default_schema', 'default');
 
         if (isset($this->schemas[$schemaName])) {
-            ServerTimingUtil::start($timingKey);
-            $return = $this->schemas[$schemaName];
-            ServerTimingUtil::stop($timingKey);
-            return $return;
+            return $this->schemas[$schemaName];
         }
 
-        ServerTimingUtil::start($timingKey);
-        if (!$forceRefresh && Cache::has('gqlSchema.' . $schemaName)) {
+        if (!$forceRefresh && $this->hasCachedSchema($schemaName)) {
             $schemaConfig = static::getNormalizedSchemaConfiguration($schemaName);
             $schema = $this->buildSchemaFromLaravelCache($schemaName, $schemaConfig);
         } else {
             $schema = parent::schema($schemaName);
             $this->storeSchemaInLaravelCache($schemaName, $schema, $this->config->get('audentioGraphQL.schemaCacheTTL'));
         }
-        ServerTimingUtil::stop($timingKey);
 
         return $schema;
     }
 
+    protected function hasCachedSchema(string $schemaName): bool
+    {
+        if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
+            return file_exists($this->getSchemaFileCacheName($schemaName));
+        }
+
+        return Cache::has('gqlSchema.' . $schemaName);
+    }
+
+    /**
+     * @param string $schemaName
+     * @param Schema $schema
+     * @param int|null $duration
+     * @return void
+     * @throws \ReflectionException
+     */
     public function storeSchemaInLaravelCache(string $schemaName, Schema $schema, ?int $duration = 300)
     {
         $schemaConfig = $schema->getConfig();
@@ -79,14 +89,17 @@ class GraphQL extends BaseGraphQL
             'typeInstances' => $this->typesInstances
         ];
 
-        $cacheContent = \Audentio\OpisClosureWrapper\serialize($cache);
+        /** @noinspection PhpParamsInspection */
+        Native::wrapClosures($cache, new \SplObjectStorage());
+        $cache = \serialize($cache);
+
         if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
-            file_put_contents($this->getSchemaFileCacheName($schemaName), $cacheContent);
+            file_put_contents($this->getSchemaFileCacheName($schemaName), $cache);
         } else {
             if ($duration === null) {
-                Cache::forever('gqlSchema.' . $schemaName, $cacheContent);
+                Cache::forever('gqlSchema.' . $schemaName, $cache);
             } else {
-                Cache::put('gqlSchema.' . $schemaName, $cacheContent);
+                Cache::put('gqlSchema.' . $schemaName, $cache);
             }
         }
     }
@@ -97,7 +110,7 @@ class GraphQL extends BaseGraphQL
         if (!$cachePath) {
             $cachePath = storage_path();
         }
-        return rtrim($cachePath, '/') . '/gqlSchema-' . $schemaName . '.dat';
+        return rtrim($cachePath, '/') . '/gqlSchema.' . $schemaName . '.dat';
     }
 
     protected function clearSchemaLaravelCache(string $schemaName): void
@@ -109,6 +122,12 @@ class GraphQL extends BaseGraphQL
         }
     }
 
+    /**
+     * @param string $schemaName
+     * @param array $schemaConfig
+     * @return Schema|mixed
+     * @throws \ReflectionException
+     */
     protected function buildSchemaFromLaravelCache(string $schemaName, array $schemaConfig)
     {
         if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
@@ -118,7 +137,8 @@ class GraphQL extends BaseGraphQL
         }
 
         /** @var Schema $schema */
-        $cache = \Audentio\OpisClosureWrapper\unserialize($cacheContent);
+        $cache = \unserialize($cacheContent);
+
         $schema = $cache['schema'];
 
         $this->clearTypeInstances();
