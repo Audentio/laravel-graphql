@@ -4,7 +4,10 @@ namespace Audentio\LaravelGraphQL\Rebing\GraphQL;
 
 use Audentio\LaravelGraphQL\Utils\ServerTimingUtil;
 use GraphQL\Type\Definition\Directive;
+use GraphQL\Type\Definition\FieldDefinition;
+use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Definition\ScalarType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
@@ -30,6 +33,7 @@ class GraphQL extends BaseGraphQL
         $schemaName = $schemaName ?? config()->get('graphql.default_schema', 'default');
         $instance->clearSchemaLaravelCache($schemaName);
     }
+
     protected function buildObjectTypeFromFields(array $fields, array $opts = []): ObjectType
     {
         $typeFields = [];
@@ -41,12 +45,7 @@ class GraphQL extends BaseGraphQL
                 $field = $field->toArray();
 
                 // START CUSTOM CODE FOR DYNAMIC TYPES
-                $fieldType = $field['type'] ?? null;
-                if ($fieldType instanceof ObjectType) {
-                    if (!array_key_exists($fieldType->name, $this->types)) {
-                        $this->addType($fieldType);
-                    }
-                }
+                $this->iterateFieldForDynamicTypes($field);
                 // END CUSTOM CODE FOR DYNAMIC TYPES
             }
             $name = is_numeric($name) ? $field['name'] : $name;
@@ -59,17 +58,74 @@ class GraphQL extends BaseGraphQL
         ], $opts));
     }
 
+    protected function iterateFieldForDynamicTypes(array $field): void
+    {
+        $fieldType = $field['type'] ?? null;
+        if (!empty($field['args'])) {
+            $this->iterateArgsForDynamicTypes($field['args']);
+        }
+        if ($fieldType instanceof ObjectType) {
+            $this->iterateObjectTypeForDynamicTypes($fieldType);
+        }
+    }
+
+    protected function iterateObjectTypeForDynamicTypes(ObjectType $type): void
+    {
+        if (!array_key_exists($type->name, $this->types)) {
+            $this->addType($type);
+        }
+    }
+
+    protected function iterateArgsForDynamicTypes(array $args): void
+    {
+        foreach ($args as $key => $arg) {
+            if (!is_array($arg)) {
+                continue;
+            }
+            $type = $arg['type'];
+            if ($type instanceof InputObjectType) {
+                if (!array_key_exists($type->name, $this->types)) {
+                    $this->addType($type);
+                }
+            }
+        }
+    }
+
     public function addType($class, string $name = null): void
     {
         parent::addType($class, $name);
 
-        if ($class instanceof ObjectType) {
+        if ($class instanceof ObjectType || $class instanceof InputObjectType) {
             if (!$name) {
                 $name = $class->name;
             }
 
             $this->typesInstances[$name] = $class;
         }
+    }
+
+    public function type(string $name, bool $fresh = false): Type
+    {
+        $modifiers = [];
+
+        while (true) {
+            if (\Safe\preg_match('/^(.+)!$/', $name, $matches)) {
+                $name = $matches[1];
+                array_unshift($modifiers, 'nonNull');
+            } elseif (\Safe\preg_match('/^\[(.+)]$/', $name, $matches)) {
+                $name = $matches[1];
+                array_unshift($modifiers, 'listOf');
+            } else {
+                break;
+            }
+        }
+
+        $suffixedType = $name . 'Type';
+        if (!array_key_exists($name, $this->types) && array_key_exists($suffixedType, $this->types)) {
+            $name = $suffixedType;
+        }
+
+        return parent::type($name, $fresh);
     }
 
     public function schema(?string $schemaName = null, bool $forceRefresh = false): Schema

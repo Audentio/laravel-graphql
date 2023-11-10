@@ -74,8 +74,6 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
             []
         );
 
-        ksort($types);
-
         return $types;
     }
 
@@ -128,8 +126,10 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
         foreach ($classes as $class) {
             $parts = explode('\\', $class);
             $itemName = end($parts);
-            if (substr($itemName, (-1 * $suffixLength)) === $suffix) {
-                $itemName = substr($itemName, 0, (-1 * $suffixLength));
+            if ($suffix !== 'UnionType') {
+                if (substr($itemName, (-1 * $suffixLength)) === $suffix) {
+                    $itemName = substr($itemName, 0, (-1 * $suffixLength));
+                }
             }
 
             if ($lcfirst) {

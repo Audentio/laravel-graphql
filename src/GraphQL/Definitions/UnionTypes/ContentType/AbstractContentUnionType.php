@@ -37,8 +37,11 @@ abstract class AbstractContentUnionType extends BaseUnionType
             }
 
             $contentType = ContentTypeUtil::getFriendlyContentTypeName($contentType);
+            $suffixedType = $contentType . 'Type';
             if (isset($availableTypes[$contentType])) {
                 $contentTypes[] = \GraphQL::type($contentType);
+            } elseif (isset($availableTypes[$suffixedType])) {
+                $contentTypes[] = \GraphQL::type($suffixedType);
             }
         }
 
