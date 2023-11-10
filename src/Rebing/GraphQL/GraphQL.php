@@ -3,12 +3,15 @@
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL;
 
 use Audentio\LaravelGraphQL\Utils\ServerTimingUtil;
+use GraphQL\Type\Definition\Directive;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
 use Illuminate\Support\Facades\Cache;
 use Rebing\GraphQL\GraphQL as BaseGraphQL;
 use Audentio\LaravelGraphQL\Opis\Closure\SerializableClosure;
+use Rebing\GraphQL\Support\Field;
 
 class GraphQL extends BaseGraphQL
 {
@@ -27,39 +30,87 @@ class GraphQL extends BaseGraphQL
         $schemaName = $schemaName ?? config()->get('graphql.default_schema', 'default');
         $instance->clearSchemaLaravelCache($schemaName);
     }
+    protected function buildObjectTypeFromFields(array $fields, array $opts = []): ObjectType
+    {
+        $typeFields = [];
+
+        foreach ($fields as $name => $field) {
+            if (\is_string($field)) {
+                $field = $this->app->make($field);
+                /** @var Field $field */
+                $field = $field->toArray();
+
+                // START CUSTOM CODE FOR DYNAMIC TYPES
+                $fieldType = $field['type'] ?? null;
+                if ($fieldType instanceof ObjectType) {
+                    if (!array_key_exists($fieldType->name, $this->types)) {
+                        $this->addType($fieldType);
+                    }
+                }
+                // END CUSTOM CODE FOR DYNAMIC TYPES
+            }
+            $name = is_numeric($name) ? $field['name'] : $name;
+            $field['name'] = $name;
+            $typeFields[$name] = $field;
+        }
+
+        return new ObjectType(array_merge([
+            'fields' => $typeFields,
+        ], $opts));
+    }
+
+    public function addType($class, string $name = null): void
+    {
+        parent::addType($class, $name);
+
+        if ($class instanceof ObjectType) {
+            if (!$name) {
+                $name = $class->name;
+            }
+
+            $this->typesInstances[$name] = $class;
+        }
+    }
 
     public function schema(?string $schemaName = null, bool $forceRefresh = false): Schema
     {
         $suffixKey = substr(md5(rand(0,1000)), 0, 5);
-        $timingKey = 'GraphQL:loadSchema:' . $suffixKey;
-        if (!$this->config->get('audentioGraphQL.enableSchemaCache')) {
-            ServerTimingUtil::start($timingKey);
-            $return = parent::schema($schemaName);
-            ServerTimingUtil::stop($timingKey);
-
-            return $return;
-        }
-
-        $schemaName = $schemaName ?? $this->config->get('graphql.default_schema', 'default');
-
-        if (isset($this->schemas[$schemaName])) {
-            ServerTimingUtil::start($timingKey);
-            $return = $this->schemas[$schemaName];
-            ServerTimingUtil::stop($timingKey);
-            return $return;
-        }
-
+        $timingKey = 'GQL:schema:' . $suffixKey;
         ServerTimingUtil::start($timingKey);
-        if (!$forceRefresh && Cache::has('gqlSchema.' . $schemaName)) {
-            $schemaConfig = static::getNormalizedSchemaConfiguration($schemaName);
-            $schema = $this->buildSchemaFromLaravelCache($schemaName, $schemaConfig);
-        } else {
-            $schema = parent::schema($schemaName);
-            $this->storeSchemaInLaravelCache($schemaName, $schema, $this->config->get('audentioGraphQL.schemaCacheTTL'));
-        }
+        $return = parent::schema($schemaName);
         ServerTimingUtil::stop($timingKey);
 
-        return $schema;
+        // Cache is disabled as performance is much worse.
+//        if (!$this->config->get('audentioGraphQL.enableSchemaCache')) {
+//            ServerTimingUtil::start($timingKey);
+//            $return = parent::schema($schemaName);
+//            ServerTimingUtil::stop($timingKey);
+//
+//            return $return;
+//        }
+//
+//        $schemaName = $schemaName ?? $this->config->get('graphql.default_schema', 'default');
+//
+//        if (isset($this->schemas[$schemaName])) {
+//            ServerTimingUtil::start($timingKey);
+//            $return = $this->schemas[$schemaName];
+//            ServerTimingUtil::stop($timingKey);
+//            return $return;
+//        }
+//
+//        ServerTimingUtil::start($timingKey);
+//        if (!$forceRefresh && Cache::has('gqlSchema.' . $schemaName)) {
+//            $schemaConfig = static::getNormalizedSchemaConfiguration($schemaName);
+//            $schema = $this->buildSchemaFromLaravelCache($schemaName, $schemaConfig);
+//        } else {
+//            $schema = parent::schema($schemaName);
+//            $this->storeSchemaInLaravelCache($schemaName, $schema, $this->config->get('audentioGraphQL.schemaCacheTTL'));
+//        }
+//        ServerTimingUtil::stop($timingKey);
+//
+//        return $schema;
+
+        return $return;
     }
 
     public function storeSchemaInLaravelCache(string $schemaName, Schema $schema, ?int $duration = 300)

@@ -34,6 +34,7 @@ class GraphQLServiceProvider extends ServiceProvider
 
         $this->bootPublishes();
         $this->bootDebug();
+        $this->extendRebing();
     }
 
     public function register()
@@ -67,7 +68,7 @@ class GraphQLServiceProvider extends ServiceProvider
 
     protected function bootConsole()
     {
-        $this->extendRebing();
+        $this->extendRebingConsole();
         $this->extendBase();
 
 //        $this->commands(EnumMakeCommand::class);
@@ -80,16 +81,8 @@ class GraphQLServiceProvider extends ServiceProvider
          $this->overrideIlluminateCommand('command.model.make', ModelMakeCommand::class);
     }
 
-    protected function extendRebing()
+    protected function extendRebing(): void
     {
-        $this->commands(EnumMakeCommand::class);
-        $this->commands(TypeMakeCommand::class);
-        $this->commands(MutationMakeCommand::class);
-        $this->commands(QueryMakeCommand::class);
-
-        $this->commands(BuildSchemaCacheCommand::class);
-        $this->commands(ClearSchemaCacheCommand::class);
-
         $this->app->singleton(BaseGraphQL::class, function (Container $app): BaseGraphQL {
             $config = $app->make(Repository::class);
             $graphql = new GraphQL($app, $config);
@@ -100,6 +93,17 @@ class GraphQLServiceProvider extends ServiceProvider
             $method->invoke($class, $config);
             return $graphql;
         });
+    }
+
+    protected function extendRebingConsole()
+    {
+        $this->commands(EnumMakeCommand::class);
+        $this->commands(TypeMakeCommand::class);
+        $this->commands(MutationMakeCommand::class);
+        $this->commands(QueryMakeCommand::class);
+
+        $this->commands(BuildSchemaCacheCommand::class);
+        $this->commands(ClearSchemaCacheCommand::class);
     }
 
     protected function bootPublishes(): void
