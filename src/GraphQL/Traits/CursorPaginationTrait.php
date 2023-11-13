@@ -14,7 +14,7 @@ trait CursorPaginationTrait
     {
         $args['paginate'] = [
             'description' => 'Pagination information',
-            'type' => new InputObjectType([
+            'type' => \GraphQL::newInputObjectType([
                 'name' => 'Paginate' . $scope,
                 'fields' => [
                     'cursor' => [
