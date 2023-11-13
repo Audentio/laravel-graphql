@@ -21,10 +21,15 @@ use Illuminate\Support\Facades\Cache;
 use Rebing\GraphQL\GraphQL as BaseGraphQL;
 use Audentio\LaravelGraphQL\Opis\Closure\SerializableClosure;
 use Rebing\GraphQL\Support\Field;
+use function Symfony\Component\String\s;
 
 class GraphQL extends BaseGraphQL
 {
     private static GraphQL $instance;
+    private static array $dynamicObjectTypes = [];
+    private static array $dynamicInputObjectTypes = [];
+
+    private static bool $called = false;
 
     public static function buildLaravelSchemaCache(?string $schemaName = null, ?int $duration = null): void
     {
@@ -44,18 +49,22 @@ class GraphQL extends BaseGraphQL
 
     public static function newObjectType(array $config): ObjectType
     {
-        $type = new ObjectType($config);
-        static::$instance->addType($type);
+        if (!isset(static::$dynamicObjectTypes[$config['name']])) {
+            static::$dynamicObjectTypes[$config['name']] = new ObjectType($config);
+            static::$instance->addType(static::$dynamicObjectTypes[$config['name']]);
+        }
 
-        return $type;
+        return static::$dynamicObjectTypes[$config['name']];
     }
 
     public static function newInputObjectType(array $config): InputObjectType
     {
-        $type = new InputObjectType($config);
-        static::$instance->addType($type);
+        if (!isset(static::$dynamicInputObjectTypes[$config['name']])) {
+            static::$dynamicInputObjectTypes[$config['name']] = new InputObjectType($config);
+            static::$instance->addType(static::$dynamicInputObjectTypes[$config['name']]);
+        }
 
-        return $type;
+        return static::$dynamicInputObjectTypes[$config['name']];
     }
 
     public function addType($class, string $name = null): void
