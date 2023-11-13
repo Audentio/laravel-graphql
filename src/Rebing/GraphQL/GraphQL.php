@@ -2,15 +2,21 @@
 
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL;
 
+use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
+use Audentio\LaravelGraphQL\GraphQL\Support\Mutation;
 use Audentio\LaravelGraphQL\Utils\ServerTimingUtil;
 use GraphQL\Type\Definition\Directive;
+use GraphQL\Type\Definition\EnumType;
 use GraphQL\Type\Definition\FieldDefinition;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ScalarType;
 use GraphQL\Type\Definition\Type;
+use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
+use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\Cache;
 use Rebing\GraphQL\GraphQL as BaseGraphQL;
 use Audentio\LaravelGraphQL\Opis\Closure\SerializableClosure;
@@ -18,6 +24,8 @@ use Rebing\GraphQL\Support\Field;
 
 class GraphQL extends BaseGraphQL
 {
+    private static GraphQL $instance;
+
     public static function buildLaravelSchemaCache(?string $schemaName = null, ?int $duration = null): void
     {
         $instance = new self(app(), config());
@@ -34,61 +42,20 @@ class GraphQL extends BaseGraphQL
         $instance->clearSchemaLaravelCache($schemaName);
     }
 
-    protected function buildObjectTypeFromFields(array $fields, array $opts = []): ObjectType
+    public static function newObjectType(array $config): ObjectType
     {
-        $typeFields = [];
+        $type = new ObjectType($config);
+        static::$instance->addType($type);
 
-        foreach ($fields as $name => $field) {
-            if (\is_string($field)) {
-                $field = $this->app->make($field);
-                /** @var Field $field */
-                $field = $field->toArray();
-
-                // START CUSTOM CODE FOR DYNAMIC TYPES
-                $this->iterateFieldForDynamicTypes($field);
-                // END CUSTOM CODE FOR DYNAMIC TYPES
-            }
-            $name = is_numeric($name) ? $field['name'] : $name;
-            $field['name'] = $name;
-            $typeFields[$name] = $field;
-        }
-
-        return new ObjectType(array_merge([
-            'fields' => $typeFields,
-        ], $opts));
+        return $type;
     }
 
-    protected function iterateFieldForDynamicTypes(array $field): void
+    public static function newInputObjectType(array $config): InputObjectType
     {
-        $fieldType = $field['type'] ?? null;
-        if (!empty($field['args'])) {
-            $this->iterateArgsForDynamicTypes($field['args']);
-        }
-        if ($fieldType instanceof ObjectType) {
-            $this->iterateObjectTypeForDynamicTypes($fieldType);
-        }
-    }
+        $type = new InputObjectType($config);
+        static::$instance->addType($type);
 
-    protected function iterateObjectTypeForDynamicTypes(ObjectType $type): void
-    {
-        if (!array_key_exists($type->name, $this->types)) {
-            $this->addType($type);
-        }
-    }
-
-    protected function iterateArgsForDynamicTypes(array $args): void
-    {
-        foreach ($args as $key => $arg) {
-            if (!is_array($arg)) {
-                continue;
-            }
-            $type = $arg['type'];
-            if ($type instanceof InputObjectType) {
-                if (!array_key_exists($type->name, $this->types)) {
-                    $this->addType($type);
-                }
-            }
-        }
+        return $type;
     }
 
     public function addType($class, string $name = null): void
@@ -267,5 +234,12 @@ class GraphQL extends BaseGraphQL
         $prop->setValue($schema, $resolvedTypes);
 
         return $schema;
+    }
+
+    public function __construct(Container $app, Repository $config)
+    {
+        parent::__construct($app, $config);
+
+        static::$instance = $this;
     }
 }

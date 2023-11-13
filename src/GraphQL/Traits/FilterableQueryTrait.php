@@ -198,7 +198,7 @@ trait FilterableQueryTrait
 
         if (!empty($fieldObjs)) {
             $args['filter'] = [
-                'type' => new InputObjectType([
+                'type' => \GraphQL::newInputObjectType([
                     'name' => 'filter' . $scope,
                     'fields' => $fieldObjs,
                     'description' => 'Filters for ' . $scope,
