@@ -49,6 +49,10 @@ class GraphQL extends BaseGraphQL
 
     public static function newObjectType(array $config): ObjectType
     {
+        if (!config('graphql.lazyload_types')) {
+            return new ObjectType($config);
+        }
+
         if (!isset(static::$dynamicObjectTypes[$config['name']])) {
             static::$dynamicObjectTypes[$config['name']] = new ObjectType($config);
             static::$instance->addType(static::$dynamicObjectTypes[$config['name']]);
@@ -59,6 +63,10 @@ class GraphQL extends BaseGraphQL
 
     public static function newInputObjectType(array $config): InputObjectType
     {
+        if (!config('graphql.lazyload_types')) {
+            return new InputObjectType($config);
+        }
+
         if (!isset(static::$dynamicInputObjectTypes[$config['name']])) {
             static::$dynamicInputObjectTypes[$config['name']] = new InputObjectType($config);
             static::$instance->addType(static::$dynamicInputObjectTypes[$config['name']]);
@@ -71,12 +79,14 @@ class GraphQL extends BaseGraphQL
     {
         parent::addType($class, $name);
 
-        if ($class instanceof ObjectType || $class instanceof InputObjectType) {
-            if (!$name) {
-                $name = $class->name;
-            }
+        if (config('graphql.lazyload_types')) {
+            if ($class instanceof ObjectType || $class instanceof InputObjectType) {
+                if (!$name) {
+                    $name = $class->name;
+                }
 
-            $this->typesInstances[$name] = $class;
+                $this->typesInstances[$name] = $class;
+            }
         }
     }
 
