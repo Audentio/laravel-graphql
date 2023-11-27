@@ -120,7 +120,7 @@ trait FilterableQueryTrait
      */
     public static function prepareFilters(array $extraParams = []): array
     {
-        $filterableFields = call_user_func_array(['self', 'getFilters'], $extraParams);
+        $filterableFields = call_user_func_array([self::class, 'getFilters'], $extraParams);
         $preparedFields = [];
 
         foreach ($filterableFields as $key => $filterableField) {
