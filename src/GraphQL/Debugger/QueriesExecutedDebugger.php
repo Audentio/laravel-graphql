@@ -4,12 +4,12 @@ namespace Audentio\LaravelGraphQL\GraphQL\Debugger;
 
 class QueriesExecutedDebugger implements \Countable
 {
-    protected $queryList = [];
+    protected array $queryList = [];
 
     /**
      * @param \Illuminate\Database\Events\QueryExecuted $query
      */
-    public function push($query)
+    public function push($query): void
     {
         $bindings = $query->bindings;
         foreach ($bindings as &$binding) {
@@ -26,12 +26,12 @@ class QueriesExecutedDebugger implements \Countable
         ];
     }
 
-    public function count()
+    public function count(): int
     {
         return count($this->queryList);
     }
 
-    public function time()
+    public function time(): float
     {
         $time = 0.0;
         foreach ($this->queryList as $query) {
@@ -44,7 +44,7 @@ class QueriesExecutedDebugger implements \Countable
     /**
      * @return array
      */
-    public function all()
+    public function all(): array
     {
         return $this->queryList;
     }
