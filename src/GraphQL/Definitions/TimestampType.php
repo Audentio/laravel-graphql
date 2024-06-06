@@ -62,12 +62,20 @@ class TimestampType extends ScalarType
 
     protected function toAtomString($value)
     {
+        if (strlen($value) <= 1) {
+            return null;
+        }
+
         if ($value instanceof StringValueNode) {
             $value = $value->value;
         }
 
-        if (!$value instanceof Carbon) {
-            $value = new Carbon($value);
+        try {
+            if (!$value instanceof Carbon) {
+                $value = new Carbon($value);
+            }
+        } catch (\Exception $e) {
+            return null;
         }
 
         return $value;
