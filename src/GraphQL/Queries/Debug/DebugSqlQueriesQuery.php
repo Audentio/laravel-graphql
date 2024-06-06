@@ -29,7 +29,7 @@ class DebugSqlQueriesQuery extends Query
 
     public static function getQueryType(): GraphQLType
     {
-        return new ObjectType([
+        return \GraphQL::newObjectType([
             'name' => 'DebugSqlQueries',
             'fields' => [
                 'id' => ['type' => Type::id()],

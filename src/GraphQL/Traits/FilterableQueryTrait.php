@@ -120,7 +120,7 @@ trait FilterableQueryTrait
      */
     public static function prepareFilters(array $extraParams = []): array
     {
-        $filterableFields = call_user_func_array(['self', 'getFilters'], $extraParams);
+        $filterableFields = call_user_func_array([self::class, 'getFilters'], $extraParams);
         $preparedFields = [];
 
         foreach ($filterableFields as $key => $filterableField) {
@@ -198,7 +198,7 @@ trait FilterableQueryTrait
 
         if (!empty($fieldObjs)) {
             $args['filter'] = [
-                'type' => new InputObjectType([
+                'type' => \GraphQL::newInputObjectType([
                     'name' => 'filter' . $scope,
                     'fields' => $fieldObjs,
                     'description' => 'Filters for ' . $scope,

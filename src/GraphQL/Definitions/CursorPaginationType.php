@@ -43,7 +43,7 @@ class CursorPaginationType extends ObjectType
             'cursor' => [
                 'description' => 'Details about the cursor',
                 'selectable' => false,
-                'type' => new ObjectType([
+                'type' => \GraphQL::newObjectType([
                     'name' => $this->typeName . 'Cursor',
                     'fields' => [
                         'perPage' => [

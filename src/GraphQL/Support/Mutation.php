@@ -41,7 +41,7 @@ abstract class Mutation extends BaseMutation
             ];
         }
 
-        return new ObjectType([
+        return \GraphQL::newObjectType([
             'name' => lcfirst($this->getActionType() . $this->getResource()->getGraphQLTypeName()),
             'fields' => $fields,
         ]);
@@ -92,7 +92,7 @@ abstract class Mutation extends BaseMutation
         $return = [
             $dataType => [
                 'rules' => ['required'],
-                'type' => new InputObjectType([
+                'type' => \GraphQL::newInputObjectType([
                         'name' => $this->getActionType() . $this->getResource()->getGraphQLTypeName() . 'Data',
                         'fields' => $fields
                 ]),

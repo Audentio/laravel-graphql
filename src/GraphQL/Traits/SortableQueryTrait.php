@@ -65,7 +65,7 @@ trait SortableQueryTrait
 
         if (!empty($fieldObjs)) {
             $args['sort'] = [
-                'type' => new InputObjectType([
+                'type' => \GraphQL::newInputObjectType([
                     'name' => 'sort' . $scope,
                     'fields' => $fieldObjs,
                 ]),

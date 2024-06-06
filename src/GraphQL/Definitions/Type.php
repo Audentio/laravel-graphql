@@ -110,7 +110,7 @@ class Type extends GraphQLType
 
     public static function sortField($name)
     {
-        return new InputObjectType([
+        return \GraphQL::newInputObjectType([
             'name' => 'sort' . $name,
             'description' => '',
             'fields' => [
@@ -122,7 +122,7 @@ class Type extends GraphQLType
     
     public static function filterField($name, $graphQLType)
     {
-        return Type::listOf(new InputObjectType([
+        return Type::listOf(\GraphQL::newInputObjectType([
             'name' => 'filter' . $name,
             'description' => '',
             'fields' => [

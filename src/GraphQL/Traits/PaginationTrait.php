@@ -13,7 +13,7 @@ trait PaginationTrait
     {
         $paginate = [
             'description' => 'Pagination information',
-            'type' => new InputObjectType([
+            'type' => \GraphQL::newInputObjectType([
                 'name' => 'Paginate' . $scope,
                 'fields' => [
                     'page' => [
@@ -38,7 +38,7 @@ trait PaginationTrait
             }
 
             $config['fields']['paginate'] = $paginate;
-            $args[$parentObject] = new InputObjectType($config);
+            $args[$parentObject] = \GraphQL::newInputObjectType($config);
         } else {
             $args['paginate'] = $paginate;
         }
