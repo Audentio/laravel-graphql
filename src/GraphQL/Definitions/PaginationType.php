@@ -21,11 +21,11 @@ class PaginationType extends ObjectType
         parent::__construct($config);
     }
 
-    protected function getPaginationFields($typeName)
+    protected function getPaginationFields($typeName): array
     {
         return [
             'data' => [
-                'type'          => GraphQLType::listOf(GraphQL::type($typeName)),
+                'type'          => GraphQLType::nonNull(GraphQLType::listOf(GraphQLType::nonNull(GraphQL::type($typeName)))),
                 'description'   => 'List of items on the current page',
                 'resolve'       => function(LengthAwarePaginator $data) { return $data->getCollection();  },
             ],
