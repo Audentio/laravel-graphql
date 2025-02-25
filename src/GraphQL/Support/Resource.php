@@ -12,7 +12,7 @@ abstract class Resource
     {
         return array_merge(
             $this->getOutputFields($this->getBaseScope()),
-            $this->getCommonFields($this->getBaseScope(), false)
+            $this->getCommonFields($this->getBaseScope())
         );
     }
 

@@ -9,12 +9,12 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
 {
     use ExtendConsoleCommandTrait, GraphQLConsoleTrait;
 
-    protected function getStub()
+    protected function getStub(): string
     {
         return __DIR__ . '/stubs/type.stub';
     }
 
-    protected function getDefaultNamespace($rootNamespace)
+    protected function getDefaultNamespace($rootNamespace): string
     {
         return $rootNamespace . '\GraphQL\Types';
     }
@@ -26,14 +26,12 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
         return parent::qualifyClass($name);
     }
 
-    protected function buildClass($name)
+    protected function buildClass($name): string
     {
         $stub = parent::buildClass($name);
         $stub = $this->replaceModelFields($stub, $name);
         $stub = $this->replaceTypeClass($stub);
-        $stub = $this->replaceResourceClass($stub, $name);
-
-        return $stub;
+        return $this->replaceResourceClass($stub, $name);
     }
 
     protected function replaceModelFields($stub, $name)
@@ -84,10 +82,10 @@ class TypeMakeCommand extends \Rebing\GraphQL\Console\TypeMakeCommand
 
         if ($resourceClass) {
             $replacements['{resourceClass}'] = 'return ' . $resourceName . '::class;';
-            $replacements['{resoureInclude}'] = 'use ' . $resourceClass . ";\n";
+            $replacements['{resourceInclude}'] = 'use ' . $resourceClass . ";\n";
         } else {
             $replacements['{resourceClass}'] = '// TODO: Implement getResourceClassName() method.';
-            $replacements['{resoureInclude}'] = '';
+            $replacements['{resourceInclude}'] = '';
         }
 
         return str_replace(array_keys($replacements), array_values($replacements), $stub);

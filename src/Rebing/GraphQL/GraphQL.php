@@ -2,26 +2,19 @@
 
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL;
 
-use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
-use Audentio\LaravelGraphQL\GraphQL\Support\Mutation;
 use Audentio\LaravelGraphQL\Utils\ServerTimingUtil;
-use GraphQL\Type\Definition\Directive;
-use GraphQL\Type\Definition\EnumType;
-use GraphQL\Type\Definition\FieldDefinition;
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ObjectType;
-use GraphQL\Type\Definition\ScalarType;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Type\Definition\WrappingType;
 use GraphQL\Type\Introspection;
 use GraphQL\Type\Schema;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\Cache;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Rebing\GraphQL\GraphQL as BaseGraphQL;
-use Audentio\LaravelGraphQL\Opis\Closure\SerializableClosure;
-use Rebing\GraphQL\Support\Field;
-use function Symfony\Component\String\s;
+use Safe\Exceptions\PcreException;
 
 class GraphQL extends BaseGraphQL
 {
@@ -31,6 +24,10 @@ class GraphQL extends BaseGraphQL
 
     private static bool $called = false;
 
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
     public static function buildLaravelSchemaCache(?string $schemaName = null, ?int $duration = null): void
     {
         $instance = new self(app(), config());
@@ -40,6 +37,10 @@ class GraphQL extends BaseGraphQL
         $instance->storeSchemaInLaravelCache($schemaName, $schema, $duration);
     }
 
+    /**
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     */
     public static function clearLaravelSchemaCache(?string $schemaName = null): void
     {
         $instance = new self(app(), config());
@@ -90,6 +91,9 @@ class GraphQL extends BaseGraphQL
         }
     }
 
+    /**
+     * @throws PcreException
+     */
     public function type(string $name, bool $fresh = false): Type
     {
         $modifiers = [];
@@ -155,6 +159,9 @@ class GraphQL extends BaseGraphQL
         return $return;
     }
 
+    /**
+     * @throws \ReflectionException
+     */
     public function storeSchemaInLaravelCache(string $schemaName, Schema $schema, ?int $duration = 300)
     {
         $schemaConfig = $schema->getConfig();
@@ -202,6 +209,9 @@ class GraphQL extends BaseGraphQL
         }
     }
 
+    /**
+     * @throws \ReflectionException
+     */
     protected function buildSchemaFromLaravelCache(string $schemaName, array $schemaConfig)
     {
         if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {

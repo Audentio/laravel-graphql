@@ -2,7 +2,6 @@
 
 namespace Audentio\LaravelGraphQL\GraphQL\Definitions\Enums\Filter;
 
-use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Support\Enum;
 
 class FilterOperatorEnum extends Enum

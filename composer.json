@@ -10,11 +10,11 @@
         }
     ],
     "require": {
-        "php": ">=7.4",
+        "php": ">=8.2",
         "ext-json": "*",
         "ext-openssl": "*",
-        "audentio/laravel-base": "^1.1|^2.0",
-        "rebing/graphql-laravel": "^8",
+        "audentio/laravel-base": "^2.0.1",
+        "rebing/graphql-laravel": "^9",
         "audentio/opis-closure-wrapper": "^0.0.1"
     },
     "autoload": {

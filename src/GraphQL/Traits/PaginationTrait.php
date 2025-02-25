@@ -3,8 +3,6 @@
 namespace Audentio\LaravelGraphQL\GraphQL\Traits;
 
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
-use GraphQL\Type\Definition\InputObjectType;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 trait PaginationTrait

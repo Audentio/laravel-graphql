@@ -12,15 +12,9 @@ class TimestampType extends ScalarType
 {
     private static $instance = null;
 
-    /**
-     * @var string
-     */
-    public $name = "Timestamp";
+    public string $name = "Timestamp";
 
-    /**
-     * @var string
-     */
-    public $description = "Conversion of Carbon object into Atom timestamp";
+    public ?string $description = "Conversion of Carbon object into Atom timestamp";
 
     public function __construct(string $name = 'Timestamp')
     {

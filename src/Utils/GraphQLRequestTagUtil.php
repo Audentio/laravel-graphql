@@ -47,7 +47,6 @@ class GraphQLRequestTagUtil
         $tags = [];
 
         try {
-            /** @var DocumentNode $documentNode */
             $documentNode = Parser::parse($source);
             if (!$documentNode) return [];
 
@@ -72,7 +71,6 @@ class GraphQLRequestTagUtil
 
                 /** @var FieldNode $selection */
                 foreach ($selections as $selection) {
-                    $name = $selection->name;
                     $alias = $selection->alias;
                     $tag = 'GraphQL:' . $operationType . ':' . $selection->name->value;
                     if ($alias) {

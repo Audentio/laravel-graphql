@@ -7,15 +7,12 @@ namespace Audentio\LaravelGraphQL\GraphQL\Queries\Debug;
 use Audentio\LaravelGraphQL\GraphQL\Debugger\QueriesExecutedDebugger;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
 use Audentio\LaravelGraphQL\GraphQL\Support\Query;
-use Audentio\LaravelGraphQL\GraphQL\Traits\ErrorTrait;
 use Audentio\LaravelGraphQL\LaravelGraphQL;
-use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use Illuminate\Database\Eloquent\Builder;
 use Ramsey\Uuid\Uuid;
 use Rebing\GraphQL\Support\Facades\GraphQL;
-use Rebing\GraphQL\Support\SelectFields;
 
 class DebugSqlQueriesQuery extends Query
 {
@@ -55,7 +52,7 @@ class DebugSqlQueriesQuery extends Query
      * @param ResolveInfo $info
      * @param \Closure $getSelectFields
      *
-     * @return mixed
+     * @return array|null
      */
     public static function getResolve($root, $args, $context, ResolveInfo $info, \Closure $getSelectFields)
     {

@@ -2,7 +2,6 @@
 
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Support;
 
-use App\Models\UserGroup;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
 use Closure;
 use GraphQL\Error\InvariantViolation;
@@ -48,7 +47,7 @@ class SelectFields extends SelectFieldsBase
         $morphWith = [];
         if($parentType instanceof UnionType) {
             foreach($parentType->getTypes() as $possibleType) {
-                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true);
+                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery);
                 $morphWith[$possibleType->config['model']] = $possibleTypeWith;
             }
         }
@@ -239,7 +238,7 @@ class SelectFields extends SelectFieldsBase
             }
         }
 
-        // If parent type is an union or interface we select all fields
+        // If parent type is a union or interface we select all fields
         // because we don't know which other fields are required
         if (is_a($parentType, UnionType::class) || is_a($parentType, \GraphQL\Type\Definition\InterfaceType::class)) {
             $select = ['*'];

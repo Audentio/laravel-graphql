@@ -4,7 +4,6 @@ namespace Audentio\LaravelGraphQL\GraphQL\Console;
 
 use Audentio\LaravelBase\Traits\ExtendConsoleCommandTrait;
 use Audentio\LaravelGraphQL\GraphQL\Console\Traits\GraphQLConsoleTrait;
-use Audentio\LaravelGraphQL\Rebing\GraphQL\Console\TypeMakeCommand;
 use Illuminate\Console\GeneratorCommand;
 
 class ResourceMakeCommand extends GeneratorCommand
@@ -50,9 +49,7 @@ class ResourceMakeCommand extends GeneratorCommand
             $modelClass = 'App\Models\\' . $modelName;
         }
 
-        $stub = $this->replaceModelName($stub, $modelName, $modelClass, $typeName);
-
-        return $stub;
+        return $this->replaceModelName($stub, $modelName, $modelClass, $typeName);
     }
 
     protected function replaceModelName(string $stub, ?string $modelName = null, ?string $modelClass = null, ?string $typeName = null): string
@@ -69,9 +66,7 @@ class ResourceMakeCommand extends GeneratorCommand
 
         $replacements['{graphQLTypeName}'] = 'return \'' . $typeName . '\';';
 
-        $stub = str_replace(array_keys($replacements), array_values($replacements), $stub);
-
-        return $stub;
+        return str_replace(array_keys($replacements), array_values($replacements), $stub);
     }
 
     protected function replaceGraphqlName(string $stub): string

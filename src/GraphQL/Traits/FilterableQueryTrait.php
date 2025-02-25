@@ -4,7 +4,6 @@ namespace Audentio\LaravelGraphQL\GraphQL\Traits;
 
 use Audentio\LaravelBase\Utils\StrUtil;
 use Audentio\LaravelGraphQL\GraphQL\Definitions\Type;
-use GraphQL\Type\Definition\InputObjectType;
 use Illuminate\Database\Eloquent\Builder;
 use Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError;
 
@@ -15,8 +14,8 @@ trait FilterableQueryTrait
      * @param array   $args
      * @param mixed   ...$extraParams
      *
-     * @return mixed
-     * @throws \Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError
+     * @return Builder
+     * @throws InvalidParameterError
      */
     public static function applyFilters(Builder $builder, array &$args, ...$extraParams)
     {
@@ -45,16 +44,15 @@ trait FilterableQueryTrait
                     }
 
                     $filter['column'] = $filterableField['column'];
-                    $operator = isset($filter['operator']) ? $filter['operator'] : '';
+                    $operator = $filter['operator'] ?? '';
                     $filter['operator'] = self::parseOperator($operator);
 
+                    $filterApplied = true;
                     if (isset($filterableField['resolve'])) {
-                        $filterApplied = true;
                         $filterableField['resolve']($builder, $filter['operator'], $filter['value']);
                         continue;
                     }
 
-                    $filterApplied = true;
                     $filtersToApply[] = $filter;
                 }
             }
@@ -116,7 +114,7 @@ trait FilterableQueryTrait
      * @param array $extraParams
      *
      * @return array
-     * @throws \Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError
+     * @throws InvalidParameterError
      */
     public static function prepareFilters(array $extraParams = []): array
     {
@@ -152,8 +150,8 @@ trait FilterableQueryTrait
 
             $filterableField = array_merge([
                 'graphQLType' => $graphQLType,
-                'canFilter' => isset($filterableField['canFilter']) ? $filterableField['canFilter'] : true,
-                'hasOperator' => isset($filterableField['hasOperator']) ? $filterableField['hasOperator'] : $hasOperatorDefaultValue,
+                'canFilter' => $filterableField['canFilter'] ?? true,
+                'hasOperator' => $filterableField['hasOperator'] ?? $hasOperatorDefaultValue,
             ], $filterableField);
 
             $preparedFields[$filterableField['field']] = $filterableField;
@@ -166,7 +164,7 @@ trait FilterableQueryTrait
      * @param       $scope
      * @param array $args
      *
-     * @throws \Audentio\LaravelGraphQL\GraphQL\Errors\InvalidParameterError
+     * @throws InvalidParameterError
      */
     public static function addFilterArgs($scope, array &$args)
     {

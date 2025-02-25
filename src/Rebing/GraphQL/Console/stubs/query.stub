@@ -15,8 +15,7 @@ use Rebing\GraphQL\Support\SelectFields;
 
 class DummyClass extends Query
 {
-    /** @var DummyClass */
-    protected static $instance;
+    protected static self $instance;
 
     protected $attributes = [
         'name' => 'DummyClass',

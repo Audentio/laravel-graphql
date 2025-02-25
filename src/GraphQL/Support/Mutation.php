@@ -2,21 +2,10 @@
 
 namespace Audentio\LaravelGraphQL\GraphQL\Support;
 
-use App\GraphQL\Mutations\Entity\DeleteEntityMutation;
-use Audentio\LaravelGraphQL\GraphQL\Errors\ValidationError;
 use Audentio\LaravelGraphQL\GraphQL\Support\Resource as BaseResource;
 use Audentio\LaravelGraphQL\GraphQL\Support\Traits\CustomResolveHandlingTrait;
-use Audentio\LaravelGraphQL\Utils\ServerTimingUtil;
-use GraphQL\GraphQL;
-use GraphQL\Type\Definition\InputObjectType;
-use GraphQL\Type\Definition\ObjectType;
-use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type as GraphqlType;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Validator;
-use Rebing\GraphQL\Error\AuthorizationError;
 use Rebing\GraphQL\Support\Mutation as BaseMutation;
-use Rebing\GraphQL\Support\SelectFields;
 
 abstract class Mutation extends BaseMutation
 {
@@ -68,7 +57,7 @@ abstract class Mutation extends BaseMutation
                 'rules' => ['required'],
             ];
         } else {
-            $additionalFields = $this->getAdditioanlResourceFields();
+            $additionalFields = $this->getAdditionalResourceFields();
 
             $isUpdate = false;
             if ($actionType === 'update') {
@@ -89,20 +78,18 @@ abstract class Mutation extends BaseMutation
             );
         }
 
-        $return = [
+        return [
             $dataType => [
                 'rules' => ['required'],
                 'type' => \GraphQL::newInputObjectType([
-                        'name' => $this->getActionType() . $this->getResource()->getGraphQLTypeName() . 'Data',
-                        'fields' => $fields
+                    'name' => $this->getActionType() . $this->getResource()->getGraphQLTypeName() . 'Data',
+                    'fields' => $fields
                 ]),
             ],
         ];
-
-        return $return;
     }
 
-    protected function getAdditioanlResourceFields(): array
+    protected function getAdditionalResourceFields(): array
     {
         return [];
     }
@@ -210,5 +197,6 @@ abstract class Mutation extends BaseMutation
     }
 
     abstract protected function getActionType(): string;
+
     abstract protected function getResourceClassName(): string;
 }
