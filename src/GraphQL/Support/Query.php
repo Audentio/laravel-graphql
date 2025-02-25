@@ -11,7 +11,6 @@ use Closure;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use Rebing\GraphQL\Error\AuthorizationError;
-use Rebing\GraphQL\Error\ValidationError;
 use Rebing\GraphQL\Support\Query as BaseQuery;
 use Rebing\GraphQL\Support\ResolveInfoFieldsAndArguments;
 
@@ -51,8 +50,9 @@ abstract class Query extends BaseQuery
 
     /**
      * @param array<int,mixed> $arguments
-     * @param int $depth
      * @param array<string,mixed> $fieldsAndArguments
+     * @param int|null $depth
+     * @return SelectFields
      */
     protected function instanciateOverrideSelectFields(array $arguments, array $fieldsAndArguments, int $depth = null): SelectFields
     {
@@ -104,7 +104,7 @@ abstract class Query extends BaseQuery
             $arguments[1] = $this->getArgs($arguments);
 
             // Authorize
-            if (true != \call_user_func_array($authorize, $arguments)) {
+            if (!\call_user_func_array($authorize, $arguments)) {
                 throw new AuthorizationError($this->getAuthorizationMessage());
             }
 

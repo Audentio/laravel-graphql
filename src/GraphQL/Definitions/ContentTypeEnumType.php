@@ -14,6 +14,9 @@ class ContentTypeEnumType extends EnumType
     /** @var MixedStore<mixed, EnumValueDefinition> */
     protected $valueLookup;
 
+    /**
+     * @throws Error
+     */
     public function serialize($value)
     {
         $value = ContentTypeUtil::getFriendlyContentTypeName($value);
@@ -31,7 +34,7 @@ class ContentTypeEnumType extends EnumType
         if ($this->valueLookup === null) {
             $this->valueLookup = new MixedStore();
 
-            foreach ($this->getValues() as $valueName => $value) {
+            foreach ($this->getValues() as $value) {
                 $this->valueLookup->offsetSet($value->value, $value);
             }
         }

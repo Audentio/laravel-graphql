@@ -10,12 +10,12 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
 {
     use ExtendConsoleCommandTrait, GraphQLConsoleTrait;
 
-    protected function getStub()
+    protected function getStub(): string
     {
         return __DIR__ . '/stubs/query.stub';
     }
 
-    protected function getDefaultNamespace($rootNamespace)
+    protected function getDefaultNamespace($rootNamespace): string
     {
         return $rootNamespace . '\GraphQL\Queries';
     }
@@ -27,16 +27,14 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
         return parent::qualifyClass($name);
     }
 
-    protected function buildClass($name)
+    protected function buildClass($name): string
     {
         $stub = parent::buildClass($name);
 
         $stub = $this->replaceModelFields($stub, $name);
         $stub = $this->replaceGraphQLType($stub, $name);
         $stub = $this->replaceArgs($stub, $name);
-        $stub = $this->replaceRootDefinition($stub, $name);
-
-        return $stub;
+        return $this->replaceRootDefinition($stub, $name);
     }
 
     protected function replaceRootDefinition($stub, $name)
@@ -63,8 +61,7 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
             $args = "\n" . $indent . '\'id\' => [\'type\' => Type::nonNull(Type::id()), \'rules\' => [\'required\']],';
         }
 
-        $stub = str_replace('{args}', $args, $stub);
-        return $stub;
+        return str_replace('{args}', $args, $stub);
     }
 
     protected function replaceGraphQLType($stub, $name)
@@ -85,9 +82,7 @@ class QueryMakeCommand extends \Rebing\GraphQL\Console\QueryMakeCommand
             }
         }
 
-        $stub = str_replace('{graphQLTypeStatement}', $replace, $stub);
-
-        return $stub;
+        return str_replace('{graphQLTypeStatement}', $replace, $stub);
     }
 
     protected function replaceModelFields($stub, $name)

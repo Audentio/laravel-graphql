@@ -4,7 +4,6 @@ namespace Audentio\LaravelGraphQL\GraphQL\Definitions\UnionTypes\ContentType;
 
 use Audentio\LaravelBase\Foundation\AbstractModel;
 use Audentio\LaravelBase\Utils\ContentTypeUtil;
-use GraphQL\GraphQL;
 use Rebing\GraphQL\Support\UnionType as BaseUnionType;
 
 abstract class AbstractContentUnionType extends BaseUnionType

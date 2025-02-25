@@ -9,7 +9,7 @@ class EnumMakeCommand extends \Rebing\GraphQL\Console\EnumMakeCommand
 {
     use ExtendConsoleCommandTrait, GraphQLConsoleTrait;
 
-    protected function getStub()
+    protected function getStub(): string
     {
         return __DIR__ . '/stubs/enum.stub';
     }
@@ -21,13 +21,10 @@ class EnumMakeCommand extends \Rebing\GraphQL\Console\EnumMakeCommand
         return parent::qualifyClass($name);
     }
 
-    protected function buildClass($name)
+    protected function buildClass($name): string
     {
         $stub = parent::buildClass($name);
-        $stub = $this->replaceTypeClass($stub);
-
-
-        return $stub;
+        return $this->replaceTypeClass($stub);
     }
 
     public function handle()

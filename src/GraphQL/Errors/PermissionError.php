@@ -2,8 +2,6 @@
 
 namespace Audentio\LaravelGraphQL\GraphQL\Errors;
 
-use GraphQL\Error\Error;
-use GraphQL\Language\Source;
 use GraphQL\Type\Definition\ResolveInfo;
 
 class PermissionError extends AbstractError

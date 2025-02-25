@@ -4,7 +4,6 @@ namespace Audentio\LaravelGraphQL\GraphQL\Definitions;
 
 use Audentio\LaravelBase\Foundation\AbstractModel;
 use Audentio\LaravelBase\Utils\ContentTypeUtil;
-use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use Rebing\GraphQL\Support\Facades\GraphQL;
@@ -132,4 +131,8 @@ class Type extends GraphQLType
         ]));
     }
 
+    public function toString(): string
+    {
+        throw new \LogicException('Type cannot be converted to string');
+    }
 }

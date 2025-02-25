@@ -9,12 +9,12 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
 {
     use ExtendConsoleCommandTrait, GraphQLConsoleTrait;
 
-    protected function getStub()
+    protected function getStub(): string
     {
         return __DIR__ . '/stubs/mutation.stub';
     }
 
-    protected function getDefaultNamespace($rootNamespace)
+    protected function getDefaultNamespace($rootNamespace): string
     {
         return $rootNamespace . '\GraphQL\Mutations';
     }
@@ -42,7 +42,7 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
         return parent::qualifyClass(implode('\\', $classParts));
     }
 
-    protected function buildClass($name)
+    protected function buildClass($name): string
     {
         $stub = parent::buildClass($name);
 
@@ -50,9 +50,7 @@ class MutationMakeCommand extends \Rebing\GraphQL\Console\MutationMakeCommand
         $stub = $this->replaceGraphQLType($stub, $name);
         $stub = $this->replaceActionDataType($stub, $name);
         $stub = $this->replaceDataType($stub, $name);
-        $stub = $this->replaceTypeClass($stub);
-
-        return $stub;
+        return $this->replaceTypeClass($stub);
     }
 
     protected function replaceModelFields($stub, $name)

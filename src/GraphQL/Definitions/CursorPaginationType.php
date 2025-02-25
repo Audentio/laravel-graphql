@@ -6,7 +6,6 @@ use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use Illuminate\Pagination\Cursor;
 use Illuminate\Pagination\CursorPaginator;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Rebing\GraphQL\Support\Facades\GraphQL;
 
 class CursorPaginationType extends ObjectType

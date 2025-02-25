@@ -65,7 +65,7 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
 
     protected function buildTypes(): array
     {
-        $types = array_replace(
+        return array_replace(
             LaravelGraphQL::getDefaultSchema()['types'] ?? [],
             $this->buildGeneralTypes(),
             $this->buildEnums(),
@@ -73,9 +73,6 @@ class ConfigGraphqlCommand extends AbstractConfigCommand
             $this->buildScalars(),
             []
         );
-
-
-        return $types;
     }
 
     protected function buildGeneralTypes()

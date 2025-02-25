@@ -16,6 +16,12 @@ trait ErrorTrait
     public static $ERR_NOT_FOUND = 'notFound';
     public static $ERR_ = 'notFound';
 
+    /**
+     * @throws ValidationError
+     * @throws InvalidParameterError
+     * @throws NotFoundError
+     * @throws PermissionError
+     */
     public function typedError($info, $error, $rootItem, $errorType = null, $defaultErrorType = LaravelGraphQL::ERR_PERMISSION)
     {
         switch ($errorType) {
@@ -27,7 +33,7 @@ trait ErrorTrait
                 $this->notFoundError($info, $error);
                 break;
 
-            case LaravelGraphQL::ERR_VALIDAATION:
+            case LaravelGraphQL::ERR_VALIDATION:
                 $this->validationError($info, $error, $rootItem);
                 break;
 
