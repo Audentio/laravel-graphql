@@ -17,7 +17,7 @@ class ResourceMakeCommand extends GeneratorCommand
 
     protected function getStub()
     {
-        return $this->resolveStubPath('/stubs/resource.stub');
+        return $this->resolveStubPath('/stubs/graphql-resource.stub');
     }
 
     protected function resolveStubPath($stub)
