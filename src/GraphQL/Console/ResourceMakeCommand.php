@@ -17,7 +17,14 @@ class ResourceMakeCommand extends GeneratorCommand
 
     protected function getStub()
     {
-        return __DIR__.'/stubs/resource.stub';
+        return $this->resolveStubPath('/stubs/graphql-resource.stub');
+    }
+
+    protected function resolveStubPath($stub)
+    {
+        return file_exists($customPath = $this->laravel->basePath(trim($stub, '/')))
+            ? $customPath
+            : __DIR__.$stub;
     }
 
     protected function qualifyClass($name)

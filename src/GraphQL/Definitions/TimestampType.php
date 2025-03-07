@@ -3,14 +3,14 @@
 namespace Audentio\LaravelGraphQL\GraphQL\Definitions;
 
 use Carbon\Carbon;
+use GraphQL\Error\InvariantViolation;
 use GraphQL\Language\AST\StringValueNode;
 use GraphQL\Type\Definition\ScalarType;
 use GraphQL\Type\Definition\Type;
-use GraphQL\Utils\Utils;
 
 class TimestampType extends ScalarType
 {
-    private static $instance = null;
+    private static ?self $instance = null;
 
     public string $name = "Timestamp";
 
@@ -18,10 +18,12 @@ class TimestampType extends ScalarType
 
     public function __construct(string $name = 'Timestamp')
     {
+        if(!$name) {
+            throw new InvariantViolation('Type must be named.');
+        }
+
         $this->name = $name;
         parent::__construct();
-
-        Utils::invariant($this->name, 'Type must be named.');
     }
 
     static public function type()
