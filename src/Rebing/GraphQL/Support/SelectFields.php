@@ -119,6 +119,11 @@ class SelectFields extends SelectFieldsBase
         array &$with,
         $ctx
     ): void {
+        $parentTypeUnwrapped = $parentType;
+
+        if ($parentTypeUnwrapped instanceof WrappingType) {
+            $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
+        }
         $parentTable = static::isMongodbInstance($parentType) ? null : static::getTableNameFromParentType($parentType);
 
         foreach ($requestedFields['fields'] as $key => $field) {
@@ -136,8 +141,8 @@ class SelectFields extends SelectFieldsBase
 
             // If field doesn't exist on definition we don't select it
             try {
-                if (method_exists($parentType, 'getField')) {
-                    $fieldObject = $parentType->getField($key);
+                if (method_exists($parentTypeUnwrapped, 'getField')) {
+                    $fieldObject = $parentTypeUnwrapped->getField($key);
                 } else {
                     continue;
                 }
@@ -145,15 +150,9 @@ class SelectFields extends SelectFieldsBase
                 continue;
             }
 
-            $parentTypeUnwrapped = $parentType;
-
-            if ($parentTypeUnwrapped instanceof WrappingType) {
-                $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
-            }
-
             // First check if the field is even accessible
             $canSelect = static::validateField($fieldObject, $queryArgs, $ctx);
-            static::recurseFieldForWith($key, $field, $parentType, $with);
+            static::recurseFieldForWith($key, $field, $parentTypeUnwrapped, $with);
 
             if (true === $canSelect) {
                 // Add a query, if it exists
