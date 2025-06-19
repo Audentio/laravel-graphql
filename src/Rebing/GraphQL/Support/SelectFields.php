@@ -120,9 +120,6 @@ class SelectFields extends SelectFieldsBase
         array &$with,
         $ctx
     ): void {
-        $parentTypeRaw = clone $parentType;
-        $i=0;
-
         $parentTypeUnwrapped = $parentType;
 
         if ($parentTypeUnwrapped instanceof WrappingType) {
