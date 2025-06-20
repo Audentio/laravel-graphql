@@ -3,6 +3,7 @@
 namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Support;
 
 use Audentio\LaravelGraphQL\GraphQL\Definitions\CursorPaginationType;
+use Audentio\LaravelGraphQL\GraphQL\Definitions\PaginationType;
 use Closure;
 use GraphQL\Error\InvariantViolation;
 use GraphQL\Type\Definition\FieldDefinition;
@@ -17,7 +18,7 @@ use Rebing\GraphQL\Support\SimplePaginationType;
 
 class SelectFields extends SelectFieldsBase
 {
-    public static function getSelectableFieldsAndRelations(array $queryArgs, array $requestedFields, GraphqlType $parentType, ?Closure $customQuery = null, bool $topLevel = true, $ctx = null)
+    public static function getSelectableFieldsAndRelations(array $queryArgs, array $requestedFields, GraphqlType $parentType, ?Closure $customQuery = null, bool $topLevel = true, $ctx = null, ?string $parentKey = null, bool $setParentKey = false)
     {
         $select = [];
         $with = [];
@@ -28,7 +29,7 @@ class SelectFields extends SelectFieldsBase
         $parentTable = static::getTableNameFromParentType($parentType);
         $primaryKey = static::getPrimaryKeyFromParentType($parentType);
 
-        static::handleFields($queryArgs, $requestedFields, $parentType, $select, $with, $ctx);
+        static::handleFields($queryArgs, $requestedFields, $parentType, $select, $with, $ctx, $parentKey, $setParentKey);
 
         // If a primary key is given, but not in the selects, add it
         if (null !== $primaryKey) {
@@ -47,11 +48,12 @@ class SelectFields extends SelectFieldsBase
         $morphWith = [];
         if($parentType instanceof UnionType) {
             foreach($parentType->getTypes() as $possibleType) {
-                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery);
+                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true, $parentKey, $setParentKey);
+
                 $morphWith[$possibleType->config['model']] = $possibleTypeWith;
             }
         }
-        return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx): void {
+        return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx, $parentKey): void {
             if ($customQuery) {
                 $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
             }
@@ -61,7 +63,7 @@ class SelectFields extends SelectFieldsBase
                     continue;
                 }
 
-                static::recurseFieldForWith($key, $field, $parentType, $with, $morphWith);
+                static::recurseFieldForWith($key, $parentKey ? $parentKey . '.' . $key : $key, $field, $parentType, $with, $morphWith);
             }
 
 //            $query->select($select);
@@ -72,7 +74,7 @@ class SelectFields extends SelectFieldsBase
         };
     }
 
-    protected static function recurseFieldForWith(string $key, array $fieldData, GraphqlType $parentType, array &$with, ?array &$morphWith = []): void
+    protected static function recurseFieldForWith(string $key, ?string $parentKey, array $fieldData, GraphqlType $parentType, array &$with, ?array &$morphWith = []): void
     {
         if ($key === '__typename') {
             return;
@@ -85,7 +87,7 @@ class SelectFields extends SelectFieldsBase
                     try {
                         /** @var ObjectType $possibleType */
                         $subWith = [];
-                        self::recurseFieldForWith($key, $fieldData, $possibleType, $subWith);
+                        self::recurseFieldForWith($key, $parentKey, $fieldData, $possibleType, $subWith);
                         $morphWith[$possibleType->config['model']] = array_merge($morphWith[$possibleType->config['model']] ?? [], $subWith);
                     } catch (InvariantViolation $e) {
                         // Ignore invalid field errors for subtype
@@ -105,7 +107,11 @@ class SelectFields extends SelectFieldsBase
 
             foreach ($fieldConfig['with'] as $item) {
                 if (!in_array($item, $with)) {
-                    $with[] = $item;
+                    if ($parentKey) {
+                        $with[] = $parentKey . '.' . $item;
+                    } else {
+                        $with[] = $item;
+                    }
                 }
             }
         }
@@ -117,9 +123,19 @@ class SelectFields extends SelectFieldsBase
         GraphqlType $parentType,
         array &$select,
         array &$with,
-        $ctx
+        $ctx,
+        ?string $parentKey = null,
+        bool $setParentKey = false
     ): void {
+        $parentTypeUnwrapped = $parentType;
+
+        if ($parentTypeUnwrapped instanceof WrappingType) {
+            $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
+        }
         $parentTable = static::isMongodbInstance($parentType) ? null : static::getTableNameFromParentType($parentType);
+        if (!$setParentKey && $parentTypeUnwrapped instanceof ObjectType && !$parentTypeUnwrapped instanceof PaginationType) {
+            $setParentKey = true;
+        }
 
         foreach ($requestedFields['fields'] as $key => $field) {
             // Ignore __typename, as it's a special case
@@ -136,8 +152,8 @@ class SelectFields extends SelectFieldsBase
 
             // If field doesn't exist on definition we don't select it
             try {
-                if (method_exists($parentType, 'getField')) {
-                    $fieldObject = $parentType->getField($key);
+                if (method_exists($parentTypeUnwrapped, 'getField')) {
+                    $fieldObject = $parentTypeUnwrapped->getField($key);
                 } else {
                     continue;
                 }
@@ -145,15 +161,9 @@ class SelectFields extends SelectFieldsBase
                 continue;
             }
 
-            $parentTypeUnwrapped = $parentType;
-
-            if ($parentTypeUnwrapped instanceof WrappingType) {
-                $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
-            }
-
             // First check if the field is even accessible
             $canSelect = static::validateField($fieldObject, $queryArgs, $ctx);
-            static::recurseFieldForWith($key, $field, $parentType, $with);
+            static::recurseFieldForWith($key, static::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect), $field, $parentTypeUnwrapped, $with);
 
             if (true === $canSelect) {
                 // Add a query, if it exists
@@ -175,7 +185,9 @@ class SelectFields extends SelectFieldsBase
                         $fieldType->getWrappedType(),
                         $select,
                         $with,
-                        $ctx
+                        $ctx,
+                        self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect),
+                        $setParentKey
                     );
                 }
                 // With
@@ -193,13 +205,15 @@ class SelectFields extends SelectFieldsBase
 
                         static::addAlwaysFields($fieldObject, $field, $parentTable, true);
 
-                        $with[$relationsKey] = static::getSelectableFieldsAndRelations(
+                        $with[static::getChildKey($parentTypeUnwrapped, $relationsKey, $parentKey, $setParentKey, $canSelect)] = static::getSelectableFieldsAndRelations(
                             $queryArgs,
                             $field,
                             $newParentType,
                             $customQuery,
                             false,
-                            $ctx
+                            $ctx,
+                            self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect),
+                            $setParentKey
                         );
                     } elseif (is_a($parentTypeUnwrapped, \GraphQL\Type\Definition\InterfaceType::class)) {
                         static::handleInterfaceFields(
@@ -214,7 +228,7 @@ class SelectFields extends SelectFieldsBase
                             $customQuery
                         );
                     } else {
-                        static::handleFields($queryArgs, $field, $fieldObject->config['type'], $select, $with, $ctx);
+                        static::handleFields($queryArgs, $field, $fieldObject->config['type'], $select, $with, $ctx, self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect), $setParentKey);
                     }
                 }
                 // Select
@@ -243,5 +257,25 @@ class SelectFields extends SelectFieldsBase
         if (is_a($parentType, UnionType::class) || is_a($parentType, \GraphQL\Type\Definition\InterfaceType::class)) {
             $select = ['*'];
         }
+    }
+
+    protected static function getChildKey(
+        GraphqlType $parentTypeUnwrapped,
+        string $key,
+        ?string $parentKey,
+        bool $setParentKey,
+        bool $canSelect
+    ): ?string
+    {
+        $childKey = null;
+        if ($setParentKey) {
+            if ($canSelect) {
+                $childKey = $parentKey ? $parentKey . '.' . $key : $key;
+            } else {
+                $childKey = $parentKey;
+            }
+        }
+
+        return $childKey;
     }
 }
