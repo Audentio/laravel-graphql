@@ -53,7 +53,7 @@ class SelectFields extends SelectFieldsBase
                 $morphWith[$possibleType->config['model']] = $possibleTypeWith;
             }
         }
-        return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx, $parentKey): void {
+        return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx, $parentKey, $queryArgs): void {
             if ($customQuery) {
                 $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
             }
@@ -62,11 +62,28 @@ class SelectFields extends SelectFieldsBase
                 if (!is_array($field)) {
                     continue;
                 }
+                $typeUnwrapped = $field['type'];
 
-                static::recurseFieldForWith($key, $parentKey ? $parentKey . '.' . $key : $key, $field, $parentType, $with, $morphWith);
+                if ($typeUnwrapped instanceof WrappingType) {
+                    $typeUnwrapped = $typeUnwrapped->getWrappedType(true);
+                }
+
+                $isSelectable = false;
+                if ($typeUnwrapped instanceof ObjectType) {
+                    $parentTypeField = $parentType->getField($key);
+                    $parentTypeFieldConfig = $parentTypeField->config ?? [];
+                    $isSelectable = true;
+                    if (array_key_exists('selectable', $parentTypeFieldConfig)) {
+                        $isSelectable = $parentTypeFieldConfig['selectable'];
+                    }
+                }
+                $childKey = $parentKey;
+                if ($isSelectable) {
+                    $childKey = $parentKey . '.' . $key;
+                }
+                static::recurseFieldForWith($key, $childKey, $field, $parentType, $with, $morphWith);
             }
 
-//            $query->select($select);
             $query->with($with);
             if($query instanceof MorphTo) {
                 $query->morphWith($morphWith);
@@ -205,7 +222,7 @@ class SelectFields extends SelectFieldsBase
 
                         static::addAlwaysFields($fieldObject, $field, $parentTable, true);
 
-                        $with[static::getChildKey($parentTypeUnwrapped, $relationsKey, $parentKey, $setParentKey, $canSelect)] = static::getSelectableFieldsAndRelations(
+                        $with[$relationsKey] = static::getSelectableFieldsAndRelations(
                             $queryArgs,
                             $field,
                             $newParentType,
