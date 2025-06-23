@@ -53,6 +53,7 @@ class SelectFields extends SelectFieldsBase
                 $morphWith[$possibleType->config['model']] = $possibleTypeWith;
             }
         }
+
         return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx, $parentKey, $queryArgs): void {
             if ($customQuery) {
                 $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
@@ -84,7 +85,25 @@ class SelectFields extends SelectFieldsBase
                 static::recurseFieldForWith($key, $parentKey, $childKey, $field, $parentType, $with, $morphWith);
             }
 
-            $query->with($with);
+            $cleanWith = [];
+            foreach ($with as $key => $value) {
+                if (is_string($value)) {
+                    $useValue = true;
+                    $relation = $value;
+                } else {
+                    $useValue = false;
+                    $relation = $key;
+                }
+                $relationParts = explode('.', $relation);
+                $relation = end($relationParts);
+                if ($useValue) {
+                    $cleanWith[$key] = $relation;
+                } else {
+                    $cleanWith[$relation] = $value;
+                }
+            }
+
+            $query->with($cleanWith);
             if($query instanceof MorphTo) {
                 $query->morphWith($morphWith);
             }
@@ -228,6 +247,9 @@ class SelectFields extends SelectFieldsBase
                         static::addAlwaysFields($fieldObject, $field, $parentTable, true);
 
                         $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect);
+                        if ($parentKey) {
+                            $relationsKey = $parentKey . '.' . $relationsKey;
+                        }
                         $with[$relationsKey] = static::getSelectableFieldsAndRelations(
                             $queryArgs,
                             $field,
