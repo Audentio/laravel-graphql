@@ -170,7 +170,12 @@ class SelectFields extends SelectFieldsBase
             $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
         }
         $parentTable = static::isMongodbInstance($parentType) ? null : static::getTableNameFromParentType($parentType);
-        if (!$setParentKey && $parentTypeUnwrapped instanceof ObjectType && !$parentTypeUnwrapped instanceof PaginationType) {
+        if (
+            !$setParentKey
+            && $parentTypeUnwrapped instanceof ObjectType
+            && !$parentTypeUnwrapped instanceof PaginationType
+            && !$parentTypeUnwrapped instanceof CursorPaginationType
+        ) {
             $setParentKey = true;
         }
 
