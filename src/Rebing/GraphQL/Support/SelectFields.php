@@ -49,7 +49,7 @@ class SelectFields extends SelectFieldsBase
         $morphWith = [];
         if($parentType instanceof UnionType) {
             foreach($parentType->getTypes() as $possibleType) {
-                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true, $parentKey, $setParentKey);
+                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true, $ctx, $parentKey, $setParentKey);
                 $morphWith[$possibleType->config['model']] = $possibleTypeWith;
             }
         }
@@ -71,11 +71,13 @@ class SelectFields extends SelectFieldsBase
 
                 $isSelectable = false;
                 if ($typeUnwrapped instanceof ObjectType) {
-                    $parentTypeField = $parentType->getField($key);
-                    $parentTypeFieldConfig = $parentTypeField->config ?? [];
                     $isSelectable = true;
-                    if (array_key_exists('selectable', $parentTypeFieldConfig)) {
-                        $isSelectable = $parentTypeFieldConfig['selectable'];
+                    if (method_exists($parentType, 'getField')) {
+                        $parentTypeField = $parentType->getField($key);
+                        $parentTypeFieldConfig = $parentTypeField->config ?? [];
+                        if (array_key_exists('selectable', $parentTypeFieldConfig)) {
+                            $isSelectable = $parentTypeFieldConfig['selectable'];
+                        }
                     }
                 }
                 $childKey = $parentKey;
@@ -105,7 +107,29 @@ class SelectFields extends SelectFieldsBase
 
             $query->with($cleanWith);
             if($query instanceof MorphTo) {
-                $query->morphWith($morphWith);
+                $cleanMorphWith = [];
+                foreach ($morphWith as $model => $relations) {
+                    if (!array_key_exists($model, $cleanMorphWith)) {
+                        $cleanMorphWith[$model] = [];
+                    }
+                    foreach ($relations as $key => $value) {
+                        if (is_string($value)) {
+                            $useValue = true;
+                            $relation = $value;
+                        } else {
+                            $useValue = false;
+                            $relation = $key;
+                        }
+                        $relationParts = explode('.', $relation);
+                        $relation = end($relationParts);
+                        if ($useValue) {
+                            $cleanMorphWith[$model][$key] = $relation;
+                        } else {
+                            $cleanMorphWith[$model][$relation] = $value;
+                        }
+                    }
+                }
+                $query->morphWith($cleanMorphWith);
             }
         };
     }
