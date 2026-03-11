@@ -4,16 +4,27 @@ namespace Audentio\LaravelGraphQL\Rebing\GraphQL\Console;
 
 use Audentio\LaravelGraphQL\Rebing\GraphQL\GraphQL;
 use Illuminate\Console\Command;
+use Rebing\GraphQL\GraphQL as BaseGraphQL;
 
 class BuildSchemaCacheCommand extends Command
 {
-    protected $signature = 'graphql:build-schema-cache {schemaName?} {duration?}';
+    protected $signature = 'graphql:build-schema-cache {schema? : The schema name to cache (default: default)}';
 
-    protected $description = 'Build a fresh version of the persistent schema cache.';
+    protected $description = 'Build and persist a file-based GraphQL schema cache for faster worker startup';
 
     public function handle(): int
     {
-        GraphQL::buildLaravelSchemaCache($this->argument('schemaName'), $this->argument('duration') ?: null);
-        return 0;
+        /** @var GraphQL $graphql */
+        $graphql = app(BaseGraphQL::class);
+
+        $schemaName = $this->argument('schema') ?? $this->laravel['config']->get('graphql.default_schema', 'default');
+
+        $this->info("Building GraphQL schema cache for schema: {$schemaName}");
+
+        $path = $graphql->buildAndStoreSchemaCache($schemaName);
+
+        $this->info("Schema cache written to: {$path}");
+
+        return self::SUCCESS;
     }
 }

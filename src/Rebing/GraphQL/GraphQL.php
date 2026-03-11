@@ -25,28 +25,12 @@ class GraphQL extends BaseGraphQL
     private static bool $called = false;
 
     /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
+     * Whether we have already triggered a full root-field resolution pass.
+     * Guarded so we never call getFields() on all root types more than once
+     * per GraphQL instance (i.e. per PHP-FPM worker lifetime after the first
+     * schema build).
      */
-    public static function buildLaravelSchemaCache(?string $schemaName = null, ?int $duration = null): void
-    {
-        $instance = new self(app(), config());
-        $schemaName = $schemaName ?? config()->get('graphql.default_schema', 'default');
-
-        $schema = $instance->schema($schemaName, true);
-        $instance->storeSchemaInLaravelCache($schemaName, $schema, $duration);
-    }
-
-    /**
-     * @throws ContainerExceptionInterface
-     * @throws NotFoundExceptionInterface
-     */
-    public static function clearLaravelSchemaCache(?string $schemaName = null): void
-    {
-        $instance = new self(app(), config());
-        $schemaName = $schemaName ?? config()->get('graphql.default_schema', 'default');
-        $instance->clearSchemaLaravelCache($schemaName);
-    }
+    private bool $rootFieldsResolved = false;
 
     public static function newObjectType(array $config): ObjectType
     {
@@ -115,154 +99,223 @@ class GraphQL extends BaseGraphQL
             $name = $suffixedType;
         }
 
+        // If the type is still not found it may be a dynamic type (e.g. a filter
+        // InputObjectType created by FilterableQueryTrait) that only gets registered
+        // as a side-effect of calling toArray() inside a per-field lazy closure.
+        // This can happen when a query uses a typed variable declaration like
+        // `($filter: filterNotificationsQuery)` — TypeInfo processes variable
+        // definitions before traversing the selection set, so the typeLoader fires
+        // before findField() has resolved that field's callable.
+        //
+        // Solution: trigger a one-time full resolution pass for all root-type fields.
+        // After this, all dynamic types are in $this->types and the retry succeeds.
+        if (!array_key_exists($name, $this->types)
+            && !array_key_exists($name, Type::getStandardTypes())
+            && !$this->rootFieldsResolved
+        ) {
+            $this->rootFieldsResolved = true;
+            foreach ($this->schemas as $schema) {
+                $queryType = $schema->getQueryType();
+                if ($queryType) {
+                    $queryType->getFields();
+                }
+                $mutationType = $schema->getMutationType();
+                if ($mutationType) {
+                    $mutationType->getFields();
+                }
+            }
+        }
+
         return parent::type($name, $fresh);
     }
 
     public function schema(?string $schemaName = null, bool $forceRefresh = false): Schema
     {
-        $suffixKey = substr(md5(rand(0,1000)), 0, 5);
+        $suffixKey = substr(md5(rand(0, 1000)), 0, 5);
         $timingKey = 'GQL:schema:' . $suffixKey;
         ServerTimingUtil::start($timingKey);
+
+        $schemaName = $schemaName ?? $this->config->get('graphql.default_schema', 'default');
+
+        if (!$forceRefresh && !isset($this->schemas[$schemaName])) {
+            $this->tryLoadSchemaFromCache($schemaName);
+        }
+
         $return = parent::schema($schemaName);
         ServerTimingUtil::stop($timingKey);
-
-        // Cache is disabled as performance is much worse.
-//        if (!$this->config->get('audentioGraphQL.enableSchemaCache')) {
-//            ServerTimingUtil::start($timingKey);
-//            $return = parent::schema($schemaName);
-//            ServerTimingUtil::stop($timingKey);
-//
-//            return $return;
-//        }
-//
-//        $schemaName = $schemaName ?? $this->config->get('graphql.default_schema', 'default');
-//
-//        if (isset($this->schemas[$schemaName])) {
-//            ServerTimingUtil::start($timingKey);
-//            $return = $this->schemas[$schemaName];
-//            ServerTimingUtil::stop($timingKey);
-//            return $return;
-//        }
-//
-//        ServerTimingUtil::start($timingKey);
-//        if (!$forceRefresh && Cache::has('gqlSchema.' . $schemaName)) {
-//            $schemaConfig = static::getNormalizedSchemaConfiguration($schemaName);
-//            $schema = $this->buildSchemaFromLaravelCache($schemaName, $schemaConfig);
-//        } else {
-//            $schema = parent::schema($schemaName);
-//            $this->storeSchemaInLaravelCache($schemaName, $schema, $this->config->get('audentioGraphQL.schemaCacheTTL'));
-//        }
-//        ServerTimingUtil::stop($timingKey);
-//
-//        return $schema;
 
         return $return;
     }
 
-    /**
-     * @throws \ReflectionException
-     */
-    public function storeSchemaInLaravelCache(string $schemaName, Schema $schema, ?int $duration = 300)
+    protected function buildObjectTypeFromFields(array $fields, array $opts = []): ObjectType
     {
-        $schemaConfig = $schema->getConfig();
-        $prop = new \ReflectionProperty($schemaConfig, 'types');
-        $prop->setAccessible(true);
-        $prop->setValue($schemaConfig, null);
+        return new ObjectType(array_merge([
+            // The outer closure is called once when any field is first accessed,
+            // constructing the field map cheaply (no class instantiation yet).
+            'fields' => function () use ($fields) {
+                $typeFields = [];
+                foreach ($fields as $name => $field) {
+                    if (\is_string($field)) {
+                        $className = $field;
+                        if (is_numeric($name)) {
+                            // Numeric-indexed: must instantiate now to learn the field name.
+                            $instance  = app()->make($className);
+                            $def       = $instance->toArray();
+                            $fieldName = $def['name'];
+                            $typeFields[$fieldName] = $def;
+                        } else {
+                            // Named key: return a callable so webonyx wraps it in
+                            // UnresolvedFieldDefinition and only resolves it when
+                            // findField($name) is called for this specific field.
+                            // Each class is instantiated on-demand, not all at once.
+                            // We must override 'name' with $name (the map key) to match
+                            // what the eager path does — the schema config key is
+                            // authoritative, not $attributes['name'] from the class.
+                            $typeFields[$name] = static function () use ($className, $name) {
+                                $def         = app()->make($className)->toArray();
+                                $def['name'] = $name;
+                                return $def;
+                            };
+                        }
+                    } else {
+                        $fieldName = is_numeric($name) ? $field['name'] : $name;
+                        $field['name'] = $fieldName;
+                        $typeFields[$fieldName] = $field;
+                    }
+                }
+                return $typeFields;
+            },
+        ], $opts));
+    }
 
-        $prop = new \ReflectionProperty($schema, 'config');
-        $prop->setAccessible(true);
-        $prop->setValue($schema, $schemaConfig);
+    public function buildSchemaFromConfig(array $schemaConfig): Schema
+    {
+        $schemaQuery = $schemaConfig['query'] ?? [];
+        $schemaMutation = $schemaConfig['mutation'] ?? [];
+        $schemaSubscription = $schemaConfig['subscription'] ?? [];
+        $schemaTypes = $schemaConfig['types'] ?? [];
+        $schemaDirectives = $schemaConfig['directives'] ?? [];
 
-        $cache = [
-            'schema' => $schema,
-            'types' => $this->types,
-            'typeInstances' => $this->typesInstances
+        $this->addTypes($schemaTypes);
+
+        $query = $this->objectType($schemaQuery, ['name' => 'Query']);
+
+        $mutation = $schemaMutation
+            ? $this->objectType($schemaMutation, ['name' => 'Mutation'])
+            : null;
+
+        $subscription = $schemaSubscription
+            ? $this->objectType($schemaSubscription, ['name' => 'Subscription'])
+            : null;
+
+        $directives = \GraphQL\Type\Definition\Directive::getInternalDirectives();
+
+        foreach ($schemaDirectives as $class) {
+            $directive = app()->make($class);
+            $directives[$directive->name] = $directive;
+        }
+
+        $lazyload = $this->config->get('graphql.lazyload_types', true);
+
+        return new Schema([
+            'query' => $query,
+            'mutation' => $mutation,
+            'subscription' => $subscription,
+            'directives' => $directives,
+            'types' => static function () {
+                $types = [];
+                foreach (app(BaseGraphQL::class)->getTypes() as $name => $type) {
+                    $types[] = app(BaseGraphQL::class)->type($name);
+                }
+                return $types;
+            },
+            'typeLoader' => $lazyload
+                ? static function (string $name): Type {
+                    return app(BaseGraphQL::class)->type($name);
+                }
+                : null,
+            'assumeValid' => $lazyload,
+        ]);
+    }
+
+    protected function tryLoadSchemaFromCache(string $schemaName): void
+    {
+        if (!$this->config->get('audentioGraphQL.enableSchemaCache', false)) {
+            return;
+        }
+
+        $path = $this->getSchemaCacheFilePath($schemaName);
+
+        if (!file_exists($path)) {
+            return;
+        }
+
+        try {
+            $data = unserialize(file_get_contents($path));
+        } catch (\Throwable $e) {
+            return;
+        }
+
+        if (!is_array($data) || !isset($data['hash'], $data['schemaConfig'])) {
+            return;
+        }
+
+        if ($data['hash'] !== $this->getSchemaCacheConfigHash()) {
+            return;
+        }
+
+        // Build a fresh lightweight schema from the cached config (O(1) with lazy closures).
+        // Storing the result in $this->schemas means parent::schema() will hit the fast path.
+        $this->clearTypeInstances();
+        $schema = $this->buildSchemaFromConfig($data['schemaConfig']);
+        $this->schemas[$schemaName] = $schema;
+    }
+
+    public function buildAndStoreSchemaCache(string $schemaName): string
+    {
+        // Serialize only the plain-string schemaConfig (no webonyx objects, no closures).
+        // tryLoadSchemaFromCache rebuilds the lightweight Schema from this on each worker start.
+        $schemaConfig = static::getNormalizedSchemaConfiguration($schemaName);
+
+        $data = [
+            'hash'         => $this->getSchemaCacheConfigHash(),
+            'schemaConfig' => $schemaConfig,
         ];
 
-        $cacheContent = \Audentio\OpisClosureWrapper\serialize($cache);
-        if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
-            file_put_contents($this->getSchemaFileCacheName($schemaName), $cacheContent);
-        } else {
-            if ($duration === null) {
-                Cache::forever('gqlSchema.' . $schemaName, $cacheContent);
-            } else {
-                Cache::put('gqlSchema.' . $schemaName, $cacheContent);
-            }
+        $path = $this->getSchemaCacheFilePath($schemaName);
+        $dir = dirname($path);
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        file_put_contents($path, serialize($data));
+
+        return $path;
+    }
+
+    public function clearSchemaCache(string $schemaName): void
+    {
+        $path = $this->getSchemaCacheFilePath($schemaName);
+
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        if (isset($this->schemas[$schemaName])) {
+            unset($this->schemas[$schemaName]);
         }
     }
 
-    protected function getSchemaFileCacheName(string $schemaName): string
+    public function getSchemaCacheFilePath(string $schemaName): string
     {
-        $cachePath = config('audentioGraphQL.schemaFileCachePath');
-        if (!$cachePath) {
-            $cachePath = storage_path();
-        }
-        return rtrim($cachePath, '/') . '/gqlSchema-' . $schemaName . '.dat';
+        $hash = $this->getSchemaCacheConfigHash();
+        return storage_path("framework/cache/graphql/{$schemaName}-{$hash}.dat");
     }
 
-    protected function clearSchemaLaravelCache(string $schemaName): void
+    public function getSchemaCacheConfigHash(): string
     {
-        if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
-            unlink($this->getSchemaFileCacheName($schemaName));
-        } else {
-            Cache::forget('gqlSchema.' . $schemaName);
-        }
-    }
-
-    /**
-     * @throws \ReflectionException
-     */
-    protected function buildSchemaFromLaravelCache(string $schemaName, array $schemaConfig)
-    {
-        if (config('audentioGraphQL.schemaCacheStorageMechanism') == 'file') {
-            $cacheContent = file_get_contents($this->getSchemaFileCacheName($schemaName));
-        } else {
-            $cacheContent = Cache::get('gqlSchema.' . $schemaName);
-        }
-
-        /** @var Schema $schema */
-        $cache = \Audentio\OpisClosureWrapper\unserialize($cacheContent);
-        $schema = $cache['schema'];
-
-        $this->clearTypeInstances();
-        $this->clearTypes();
-        $this->types = $cache['types'];
-        $this->typesInstances = $cache['typeInstances'];
-
-        $config = $schema->getConfig();
-
-        $config->setTypes(function () {
-            $types = [];
-
-            foreach ($this->getTypes() as $name => $type) {
-                $types[] = $this->type($name);
-            }
-
-            return $types;
-        });
-
-        foreach ($schemaConfig['query'] as $query) {
-            new $query;
-        }
-
-        $prop = new \ReflectionProperty($schema, 'config');
-        $prop->setAccessible(true);
-        $prop->setValue($schema, $config);
-
-        $prop = new \ReflectionProperty($schema, 'resolvedTypes');
-        $prop->setAccessible(true);
-        $resolvedTypes = $prop->getValue($schema);
-
-        $standardTypes = array_intersect_key($resolvedTypes, array_flip(['ID', 'String', 'Int', 'Float', 'Boolean']));
-        Type::overrideStandardTypes($standardTypes);
-
-        $class = new \ReflectionClass(Introspection::class);
-        $map = array_intersect_key($resolvedTypes, array_flip(['__Schema', '__Type', '__Directive', '__Field', '__InputValue', '__EnumValue', '__TypeKind', '__DirectiveLocation']));
-        $class->setStaticPropertyValue('map', $map);
-
-        $prop->setValue($schema, $resolvedTypes);
-
-        return $schema;
+        return md5(serialize(config('gqlData')));
     }
 
     public function __construct(Container $app, Repository $config)

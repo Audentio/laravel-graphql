@@ -48,11 +48,11 @@ class SelectFields extends SelectFieldsBase
         $morphWith = [];
         if($parentType instanceof UnionType) {
             foreach($parentType->getTypes() as $possibleType) {
-                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true, $parentKey, $setParentKey);
-
+                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true, $ctx, $parentKey, $setParentKey);
                 $morphWith[$possibleType->config['model']] = $possibleTypeWith;
             }
         }
+
         return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx, $parentKey, $queryArgs): void {
             if ($customQuery) {
                 $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
@@ -70,28 +70,70 @@ class SelectFields extends SelectFieldsBase
 
                 $isSelectable = false;
                 if ($typeUnwrapped instanceof ObjectType) {
-                    $parentTypeField = $parentType->getField($key);
-                    $parentTypeFieldConfig = $parentTypeField->config ?? [];
                     $isSelectable = true;
-                    if (array_key_exists('selectable', $parentTypeFieldConfig)) {
-                        $isSelectable = $parentTypeFieldConfig['selectable'];
+                    if (method_exists($parentType, 'getField')) {
+                        $parentTypeField = $parentType->getField($key);
+                        $parentTypeFieldConfig = $parentTypeField->config ?? [];
+                        if (array_key_exists('selectable', $parentTypeFieldConfig)) {
+                            $isSelectable = $parentTypeFieldConfig['selectable'];
+                        }
                     }
                 }
                 $childKey = $parentKey;
                 if ($isSelectable) {
                     $childKey = $parentKey . '.' . $key;
                 }
-                static::recurseFieldForWith($key, $childKey, $field, $parentType, $with, $morphWith);
+                static::recurseFieldForWith($key, $parentKey, $childKey, $field, $parentType, $with, $morphWith);
             }
 
-            $query->with($with);
+            $cleanWith = [];
+            foreach ($with as $key => $value) {
+                if (is_string($value)) {
+                    $useValue = true;
+                    $relation = $value;
+                } else {
+                    $useValue = false;
+                    $relation = $key;
+                }
+                $relationParts = explode('.', $relation);
+                $relation = end($relationParts);
+                if ($useValue) {
+                    $cleanWith[$key] = $relation;
+                } else {
+                    $cleanWith[$relation] = $value;
+                }
+            }
+
+            $query->with($cleanWith);
             if($query instanceof MorphTo) {
-                $query->morphWith($morphWith);
+                $cleanMorphWith = [];
+                foreach ($morphWith as $model => $relations) {
+                    if (!array_key_exists($model, $cleanMorphWith)) {
+                        $cleanMorphWith[$model] = [];
+                    }
+                    foreach ($relations as $key => $value) {
+                        if (is_string($value)) {
+                            $useValue = true;
+                            $relation = $value;
+                        } else {
+                            $useValue = false;
+                            $relation = $key;
+                        }
+                        $relationParts = explode('.', $relation);
+                        $relation = end($relationParts);
+                        if ($useValue) {
+                            $cleanMorphWith[$model][$key] = $relation;
+                        } else {
+                            $cleanMorphWith[$model][$relation] = $value;
+                        }
+                    }
+                }
+                $query->morphWith($cleanMorphWith);
             }
         };
     }
 
-    protected static function recurseFieldForWith(string $key, ?string $parentKey, array $fieldData, GraphqlType $parentType, array &$with, ?array &$morphWith = []): void
+    protected static function recurseFieldForWith(string $key, ?string $parentKey, ?string $childKey, array $fieldData, GraphqlType $parentType, array &$with, ?array &$morphWith = []): void
     {
         if ($key === '__typename') {
             return;
@@ -104,7 +146,7 @@ class SelectFields extends SelectFieldsBase
                     try {
                         /** @var ObjectType $possibleType */
                         $subWith = [];
-                        self::recurseFieldForWith($key, $parentKey, $fieldData, $possibleType, $subWith);
+                        self::recurseFieldForWith($key, $parentKey, null, $fieldData, $possibleType, $subWith);
                         $morphWith[$possibleType->config['model']] = array_merge($morphWith[$possibleType->config['model']] ?? [], $subWith);
                     } catch (InvariantViolation $e) {
                         // Ignore invalid field errors for subtype
@@ -131,6 +173,7 @@ class SelectFields extends SelectFieldsBase
                     }
                 }
             }
+
         }
     }
 
@@ -150,7 +193,12 @@ class SelectFields extends SelectFieldsBase
             $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
         }
         $parentTable = static::isMongodbInstance($parentType) ? null : static::getTableNameFromParentType($parentType);
-        if (!$setParentKey && $parentTypeUnwrapped instanceof ObjectType && !$parentTypeUnwrapped instanceof PaginationType) {
+        if (
+            !$setParentKey
+            && $parentTypeUnwrapped instanceof ObjectType
+            && !$parentTypeUnwrapped instanceof PaginationType
+            && !$parentTypeUnwrapped instanceof CursorPaginationType
+        ) {
             $setParentKey = true;
         }
 
@@ -180,7 +228,10 @@ class SelectFields extends SelectFieldsBase
 
             // First check if the field is even accessible
             $canSelect = static::validateField($fieldObject, $queryArgs, $ctx);
-            static::recurseFieldForWith($key, static::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect), $field, $parentTypeUnwrapped, $with);
+            $fieldTypeUnwrapped = $fieldObject->getType();
+
+            $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect && $fieldTypeUnwrapped instanceof ObjectType);
+            static::recurseFieldForWith($key, $parentKey, $childKey, $field, $parentTypeUnwrapped, $with);
 
             if (true === $canSelect) {
                 // Add a query, if it exists
@@ -196,6 +247,7 @@ class SelectFields extends SelectFieldsBase
                 ) {
                     /* @var GraphqlType $fieldType */
                     $fieldType = $fieldObject->config['type'];
+                    $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect);
                     static::handleFields(
                         $queryArgs,
                         $field,
@@ -203,7 +255,7 @@ class SelectFields extends SelectFieldsBase
                         $select,
                         $with,
                         $ctx,
-                        self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect),
+                        $childKey,
                         $setParentKey
                     );
                 }
@@ -222,6 +274,10 @@ class SelectFields extends SelectFieldsBase
 
                         static::addAlwaysFields($fieldObject, $field, $parentTable, true);
 
+                        $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect);
+                        if ($parentKey) {
+                            $relationsKey = $parentKey . '.' . $relationsKey;
+                        }
                         $with[$relationsKey] = static::getSelectableFieldsAndRelations(
                             $queryArgs,
                             $field,
@@ -229,7 +285,7 @@ class SelectFields extends SelectFieldsBase
                             $customQuery,
                             false,
                             $ctx,
-                            self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect),
+                            $childKey,
                             $setParentKey
                         );
                     } elseif (is_a($parentTypeUnwrapped, \GraphQL\Type\Definition\InterfaceType::class)) {
@@ -245,7 +301,8 @@ class SelectFields extends SelectFieldsBase
                             $customQuery
                         );
                     } else {
-                        static::handleFields($queryArgs, $field, $fieldObject->config['type'], $select, $with, $ctx, self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect), $setParentKey);
+                        $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect);
+                        static::handleFields($queryArgs, $field, $fieldObject->config['type'], $select, $with, $ctx, $childKey, $setParentKey);
                     }
                 }
                 // Select
