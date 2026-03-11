@@ -39,6 +39,9 @@ abstract class AbstractContentTypeEnum extends Enum
         $className = get_class($this);
         $classParts = explode('\\', $className);
         $this->attributes['name'] = end($classParts);
-        $this->attributes['values'] = $this->getContentTypes();
+        $values = $this->getContentTypes();
+        $this->attributes['values'] = static function () use ($values) {
+            return $values;
+        };
     }
 }
