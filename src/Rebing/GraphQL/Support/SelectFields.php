@@ -18,165 +18,6 @@ use Rebing\GraphQL\Support\SimplePaginationType;
 
 class SelectFields extends SelectFieldsBase
 {
-    public static function getSelectableFieldsAndRelations(array $queryArgs, array $requestedFields, GraphqlType $parentType, ?Closure $customQuery = null, bool $topLevel = true, $ctx = null, ?string $parentKey = null, bool $setParentKey = false)
-    {
-        $select = [];
-        $with = [];
-
-        if ($parentType instanceof WrappingType) {
-            $parentType = $parentType->getWrappedType(true);
-        }
-        $parentTable = static::getTableNameFromParentType($parentType);
-        $primaryKey = static::getPrimaryKeyFromParentType($parentType);
-
-        static::handleFields($queryArgs, $requestedFields, $parentType, $select, $with, $ctx, $parentKey, $setParentKey);
-
-        // If a primary key is given, but not in the selects, add it
-        if (null !== $primaryKey) {
-            $primaryKey = $parentTable ? ($parentTable . '.' . $primaryKey) : $primaryKey;
-            $alternateKey = $parentTable ? ($parentTable . '.' . '*') : '*';
-
-            if (!in_array($primaryKey, $select) && !in_array($alternateKey, $select)) {
-                $select[] = $primaryKey;
-            }
-        }
-
-        if ($topLevel) {
-            return [$select, $with];
-        }
-
-        $morphWith = [];
-        if($parentType instanceof UnionType) {
-            foreach($parentType->getTypes() as $possibleType) {
-                list($possibleTypeFields, $possibleTypeWith) = self::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $possibleType, $customQuery, true, $ctx, $parentKey, $setParentKey);
-                $morphWith[$possibleType->config['model']] = $possibleTypeWith;
-            }
-        }
-
-        return function ($query) use ($with, $morphWith, $select, $customQuery, $requestedFields, $parentType, $ctx, $parentKey, $queryArgs): void {
-            if ($customQuery) {
-                $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
-            }
-
-            foreach ($requestedFields['fields'] as $key => $field) {
-                if (!is_array($field)) {
-                    continue;
-                }
-                $typeUnwrapped = $field['type'];
-
-                if ($typeUnwrapped instanceof WrappingType) {
-                    $typeUnwrapped = $typeUnwrapped->getWrappedType(true);
-                }
-
-                $isSelectable = false;
-                if ($typeUnwrapped instanceof ObjectType) {
-                    $isSelectable = true;
-                    if (method_exists($parentType, 'getField')) {
-                        $parentTypeField = $parentType->getField($key);
-                        $parentTypeFieldConfig = $parentTypeField->config ?? [];
-                        if (array_key_exists('selectable', $parentTypeFieldConfig)) {
-                            $isSelectable = $parentTypeFieldConfig['selectable'];
-                        }
-                    }
-                }
-                $childKey = $parentKey;
-                if ($isSelectable) {
-                    $childKey = $parentKey . '.' . $key;
-                }
-                static::recurseFieldForWith($key, $parentKey, $childKey, $field, $parentType, $with, $morphWith);
-            }
-
-            $cleanWith = [];
-            foreach ($with as $key => $value) {
-                if (is_string($value)) {
-                    $useValue = true;
-                    $relation = $value;
-                } else {
-                    $useValue = false;
-                    $relation = $key;
-                }
-                $relationParts = explode('.', $relation);
-                $relation = end($relationParts);
-                if ($useValue) {
-                    $cleanWith[$key] = $relation;
-                } else {
-                    $cleanWith[$relation] = $value;
-                }
-            }
-
-            $query->with($cleanWith);
-            if($query instanceof MorphTo) {
-                $cleanMorphWith = [];
-                foreach ($morphWith as $model => $relations) {
-                    if (!array_key_exists($model, $cleanMorphWith)) {
-                        $cleanMorphWith[$model] = [];
-                    }
-                    foreach ($relations as $key => $value) {
-                        if (is_string($value)) {
-                            $useValue = true;
-                            $relation = $value;
-                        } else {
-                            $useValue = false;
-                            $relation = $key;
-                        }
-                        $relationParts = explode('.', $relation);
-                        $relation = end($relationParts);
-                        if ($useValue) {
-                            $cleanMorphWith[$model][$key] = $relation;
-                        } else {
-                            $cleanMorphWith[$model][$relation] = $value;
-                        }
-                    }
-                }
-                $query->morphWith($cleanMorphWith);
-            }
-        };
-    }
-
-    protected static function recurseFieldForWith(string $key, ?string $parentKey, ?string $childKey, array $fieldData, GraphqlType $parentType, array &$with, ?array &$morphWith = []): void
-    {
-        if ($key === '__typename') {
-            return;
-        }
-
-        // Temporary fix for union types
-        if (!method_exists($parentType, 'getField')) {
-            if($parentType instanceof UnionType) {
-                foreach ($parentType->getTypes() as $possibleType) {
-                    try {
-                        /** @var ObjectType $possibleType */
-                        $subWith = [];
-                        self::recurseFieldForWith($key, $parentKey, null, $fieldData, $possibleType, $subWith);
-                        $morphWith[$possibleType->config['model']] = array_merge($morphWith[$possibleType->config['model']] ?? [], $subWith);
-                    } catch (InvariantViolation $e) {
-                        // Ignore invalid field errors for subtype
-                    }
-                }
-            }
-            return;
-        }
-        /** @var FieldDefinition $field */
-        $field = $parentType->getField($key);
-
-        $fieldConfig = $field->config ?? [];
-        if (!empty($fieldConfig['with'])) {
-            if (!is_array($fieldConfig['with'])) {
-                $fieldConfig['with'] = [$fieldConfig['with']];
-            }
-
-            foreach ($fieldConfig['with'] as $item) {
-                if (!in_array($item, $with)) {
-                    if ($parentKey) {
-                        $with[] = $parentKey . '.' . $item;
-                    } else {
-                        $with[] = $item;
-                    }
-                }
-            }
-
-        }
-    }
-
     protected static function handleFields(
         array $queryArgs,
         array $requestedFields,
@@ -184,172 +25,87 @@ class SelectFields extends SelectFieldsBase
         array &$select,
         array &$with,
         $ctx,
-        ?string $parentKey = null,
-        bool $setParentKey = false
     ): void {
-        $parentTypeUnwrapped = $parentType;
+        $unwrappedType = $parentType instanceof WrappingType
+            ? $parentType->getInnermostType()
+            : $parentType;
 
-        if ($parentTypeUnwrapped instanceof WrappingType) {
-            $parentTypeUnwrapped = $parentTypeUnwrapped->getWrappedType(true);
-        }
-        $parentTable = static::isMongodbInstance($parentType) ? null : static::getTableNameFromParentType($parentType);
-        if (
-            !$setParentKey
-            && $parentTypeUnwrapped instanceof ObjectType
-            && !$parentTypeUnwrapped instanceof PaginationType
-            && !$parentTypeUnwrapped instanceof CursorPaginationType
-        ) {
-            $setParentKey = true;
-        }
+        $model = isset($unwrappedType->config['model'])
+            ? app($unwrappedType->config['model'])
+            : null;
+
+        $parentTable = $model?->getTable();
+
+        // Pre-process: remove fields that have a custom 'with' config but don't correspond
+        // to an actual Eloquent relation on the model. This prevents the base class from
+        // calling e.g. GroupUser::content() which doesn't exist — the real eager load path
+        // is specified in the 'with' config (e.g. 'group.content').
+        $customWithFields = [];
+        $filteredRequestedFields = $requestedFields;
 
         foreach ($requestedFields['fields'] as $key => $field) {
-            // Ignore __typename, as it's a special case
-            if ('__typename' === $key) {
+            if ($key === '__typename' || $field === static::ALWAYS_RELATION_KEY) {
                 continue;
             }
 
-            // Always select foreign key
-            if ($field === static::ALWAYS_RELATION_KEY) {
-                static::addFieldToSelect($key, $select, $parentTable, false);
-
-                continue;
-            }
-
-            // If field doesn't exist on definition we don't select it
             try {
-                if (method_exists($parentTypeUnwrapped, 'getField')) {
-                    $fieldObject = $parentTypeUnwrapped->getField($key);
-                } else {
+                if (!method_exists($unwrappedType, 'getField')) {
                     continue;
                 }
+                $fieldObject = $unwrappedType->getField($key);
             } catch (InvariantViolation $e) {
                 continue;
             }
 
-            // First check if the field is even accessible
-            $canSelect = static::validateField($fieldObject, $queryArgs, $ctx);
-            $fieldTypeUnwrapped = $fieldObject->getType();
+            if (!empty($fieldObject->config['with']) && $model && !method_exists($model, $key)) {
+                $customWithFields[$key] = $fieldObject;
+                unset($filteredRequestedFields['fields'][$key]);
+            }
+        }
 
-            $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect && $fieldTypeUnwrapped instanceof ObjectType);
-            static::recurseFieldForWith($key, $parentKey, $childKey, $field, $parentTypeUnwrapped, $with);
+        parent::handleFields($queryArgs, $filteredRequestedFields, $parentType, $select, $with, $ctx);
 
-            if (true === $canSelect) {
-                // Add a query, if it exists
-                $customQuery = $fieldObject->config['query'] ?? null;
+        // Process 'with' configs from all requested fields
+        foreach ($requestedFields['fields'] as $key => $field) {
+            if ($key === '__typename') {
+                continue;
+            }
 
-                // Check if the field is a relation that needs to be requested from the DB
-                $queryable = static::isQueryable($fieldObject->config);
-
-                // Pagination
-                if (is_a($parentType, Config::get('graphql.pagination_type', \Rebing\GraphQL\Support\PaginationType::class)) ||
-                    is_a($parentType, Config::get('graphql.simple_pagination_type', SimplePaginationType::class)) ||
-                    is_a($parentType, CursorPaginationType::class)
-                ) {
-                    /* @var GraphqlType $fieldType */
-                    $fieldType = $fieldObject->config['type'];
-                    $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect);
-                    static::handleFields(
-                        $queryArgs,
-                        $field,
-                        $fieldType->getWrappedType(),
-                        $select,
-                        $with,
-                        $ctx,
-                        $childKey,
-                        $setParentKey
-                    );
+            try {
+                if (!method_exists($unwrappedType, 'getField')) {
+                    continue;
                 }
-                // With
-                elseif (\is_array($field['fields']) && !empty($field['fields']) && $queryable) {
-                    if (isset($parentType->config['model'])) {
-                        // Get the next parent type, so that 'with' queries could be made
-                        // Both keys for the relation are required (e.g 'id' <-> 'user_id')
-                        $relationsKey = $fieldObject->config['alias'] ?? $key;
-                        $relation = call_user_func([app($parentType->config['model']), $relationsKey]);
+                $fieldObject = $unwrappedType->getField($key);
+            } catch (InvariantViolation $e) {
+                continue;
+            }
 
-                        static::handleRelation($select, $relation, $parentTable, $field);
+            if (!empty($fieldObject->config['with'])) {
+                $fieldWith = $fieldObject->config['with'];
+                if (is_string($fieldWith)) {
+                    $fieldWith = [$fieldWith];
+                }
 
-                        // New parent type, which is the relation
-                        $newParentType = $parentType->getField($key)->config['type'];
-
-                        static::addAlwaysFields($fieldObject, $field, $parentTable, true);
-
-                        $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect);
-                        if ($parentKey) {
-                            $relationsKey = $parentKey . '.' . $relationsKey;
+                foreach ($fieldWith as $withKey => $withValue) {
+                    if (is_int($withKey)) {
+                        if (!isset($with[$withValue])) {
+                            $with[$withValue] = static function ($query) {
+                            };
                         }
-                        $with[$relationsKey] = static::getSelectableFieldsAndRelations(
-                            $queryArgs,
-                            $field,
-                            $newParentType,
-                            $customQuery,
-                            false,
-                            $ctx,
-                            $childKey,
-                            $setParentKey
-                        );
-                    } elseif (is_a($parentTypeUnwrapped, \GraphQL\Type\Definition\InterfaceType::class)) {
-                        static::handleInterfaceFields(
-                            $queryArgs,
-                            $field,
-                            $parentTypeUnwrapped,
-                            $select,
-                            $with,
-                            $ctx,
-                            $fieldObject,
-                            $key,
-                            $customQuery
-                        );
                     } else {
-                        $childKey = self::getChildKey($parentTypeUnwrapped, $key, $parentKey, $setParentKey, $canSelect);
-                        static::handleFields($queryArgs, $field, $fieldObject->config['type'], $select, $with, $ctx, $childKey, $setParentKey);
+                        if (!isset($with[$withKey])) {
+                            $with[$withKey] = $withValue;
+                        }
                     }
                 }
-                // Select
-                else {
-                    $key = $fieldObject->config['alias']
-                        ?? $key;
-                    $key = $key instanceof Closure ? $key() : $key;
+            }
 
-                    static::addFieldToSelect($key, $select, $parentTable, false);
-                    static::addAlwaysFields($fieldObject, $select, $parentTable);
-                }
-            }
-            // If privacy does not allow the field, return it as null
-            elseif (null === $canSelect) {
-                $fieldObject->resolveFn = function (): void {
-                };
-            }
-            // If allowed field, but not selectable
-            elseif (false === $canSelect) {
-                static::addAlwaysFields($fieldObject, $select, $parentTable);
+            // Handle always fields for fields we stripped from parent processing
+            if (isset($customWithFields[$key])) {
+                static::addAlwaysFields($customWithFields[$key], $select, $parentTable);
             }
         }
 
-        // If parent type is a union or interface we select all fields
-        // because we don't know which other fields are required
-        if (is_a($parentType, UnionType::class) || is_a($parentType, \GraphQL\Type\Definition\InterfaceType::class)) {
-            $select = ['*'];
-        }
-    }
-
-    protected static function getChildKey(
-        GraphqlType $parentTypeUnwrapped,
-        string $key,
-        ?string $parentKey,
-        bool $setParentKey,
-        bool $canSelect
-    ): ?string
-    {
-        $childKey = null;
-        if ($setParentKey) {
-            if ($canSelect) {
-                $childKey = $parentKey ? $parentKey . '.' . $key : $key;
-            } else {
-                $childKey = $parentKey;
-            }
-        }
-
-        return $childKey;
+        $select = ['*'];
     }
 }
