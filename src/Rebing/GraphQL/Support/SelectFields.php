@@ -30,6 +30,14 @@ class SelectFields extends SelectFieldsBase
             ? $parentType->getInnermostType()
             : $parentType;
 
+        // Union types don't have fields directly — fields come from member types
+        // via inline fragments. Process each requested field against the member types.
+        if ($unwrappedType instanceof UnionType) {
+            static::handleUnionFields($queryArgs, $requestedFields, $unwrappedType, $select, $with, $ctx);
+            $select = ['*'];
+            return;
+        }
+
         $model = isset($unwrappedType->config['model'])
             ? app($unwrappedType->config['model'])
             : null;
@@ -107,5 +115,83 @@ class SelectFields extends SelectFieldsBase
         }
 
         $select = ['*'];
+    }
+
+    protected static function handleUnionFields(
+        array $queryArgs,
+        array $requestedFields,
+        UnionType $unionType,
+        array &$select,
+        array &$with,
+        $ctx,
+    ): void {
+        $memberTypes = $unionType->getTypes();
+
+        foreach ($requestedFields['fields'] as $key => $field) {
+            if ($key === '__typename' || $field === static::ALWAYS_RELATION_KEY) {
+                continue;
+            }
+
+            if (!is_array($field['fields'] ?? null) || empty($field['fields'])) {
+                continue;
+            }
+
+            // Find the first member type that has this field
+            foreach ($memberTypes as $memberType) {
+                try {
+                    $fieldObject = $memberType->getField($key);
+                } catch (InvariantViolation $e) {
+                    continue;
+                }
+
+                if (!isset($memberType->config['model'])) {
+                    continue;
+                }
+
+                $relationsKey = $fieldObject->config['alias'] ?? $key;
+                $model = app($memberType->config['model']);
+
+                if (!method_exists($model, $relationsKey)) {
+                    // Not a relation — recurse into the field's type to handle nested fields
+                    static::handleFields($queryArgs, $field, $fieldObject->config['type'], $select, $with, $ctx);
+                    break;
+                }
+
+                $customQuery = $fieldObject->config['query'] ?? null;
+                $newParentType = $fieldObject->config['type'];
+
+                $with[$relationsKey] = static::getSelectableFieldsAndRelations(
+                    $queryArgs,
+                    $field,
+                    $newParentType,
+                    $customQuery,
+                    false,
+                    $ctx,
+                );
+
+                // Process custom 'with' config on the field
+                if (!empty($fieldObject->config['with'])) {
+                    $fieldWith = $fieldObject->config['with'];
+                    if (is_string($fieldWith)) {
+                        $fieldWith = [$fieldWith];
+                    }
+
+                    foreach ($fieldWith as $withKey => $withValue) {
+                        if (is_int($withKey)) {
+                            if (!isset($with[$withValue])) {
+                                $with[$withValue] = static function ($query) {
+                                };
+                            }
+                        } else {
+                            if (!isset($with[$withKey])) {
+                                $with[$withKey] = $withValue;
+                            }
+                        }
+                    }
+                }
+
+                break;
+            }
+        }
     }
 }
