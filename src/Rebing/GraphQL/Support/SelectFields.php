@@ -32,7 +32,7 @@ class SelectFields extends SelectFieldsBase
 
         // Union types don't have fields directly — fields come from member types
         // via inline fragments. Process each requested field against the member types.
-        if ($unwrappedType instanceof UnionType) {
+        if ($unwrappedType instanceof UnionType && config('audentioGraphQL.unionEagerLoad')) {
             static::handleUnionFields($queryArgs, $requestedFields, $unwrappedType, $select, $with, $ctx);
             $select = ['*'];
             return;

@@ -30,4 +30,10 @@ return [
      * Prefix to automatically prepend to type names.
      */
     'namePrefix' => '',
+
+    /*
+     * If set to true, union types will return eager loading.
+     * This must be handled in any queries when passing with() or it may trigger errors.
+     */
+    'unionEagerLoad' => false,
 ];
