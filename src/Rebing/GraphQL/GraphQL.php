@@ -323,5 +323,7 @@ class GraphQL extends BaseGraphQL
         parent::__construct($app, $config);
 
         static::$instance = $this;
+        static::$dynamicObjectTypes = [];
+        static::$dynamicInputObjectTypes = [];
     }
 }
