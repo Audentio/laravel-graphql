@@ -5,9 +5,15 @@ namespace Audentio\LaravelGraphQL\GraphQL\Definitions;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Rebing\GraphQL\Support\Contracts\WrapType;
 use Rebing\GraphQL\Support\Facades\GraphQL;
 
-class PaginationType extends ObjectType
+/**
+ * Implements WrapType so SelectFields (rebing/graphql-laravel-select-fields) treats it as a
+ * pagination wrapper, as rebing 9 did via its `graphql.pagination_type` config check.
+ * CursorPaginationType deliberately does not: rebing 9 never matched it either.
+ */
+class PaginationType extends ObjectType implements WrapType
 {
     public function __construct($typeName, $customName = null)
     {

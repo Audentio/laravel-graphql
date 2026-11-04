@@ -12,7 +12,8 @@ use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type as GraphQLType;
 use Rebing\GraphQL\Error\AuthorizationError;
 use Rebing\GraphQL\Support\Query as BaseQuery;
-use Rebing\GraphQL\Support\ResolveInfoFieldsAndArguments;
+use Rebing\GraphQL\Support\SelectFields as BaseSelectFields;
+use InvalidArgumentException;
 
 abstract class Query extends BaseQuery
 {
@@ -57,11 +58,6 @@ abstract class Query extends BaseQuery
     protected function instanciateOverrideSelectFields(array $arguments, array $fieldsAndArguments, int $depth = null): SelectFields
     {
         $ctx = $arguments[2] ?? null;
-
-        if (null !== $depth && $depth !== $this->depth) {
-            $fieldsAndArguments = (new ResolveInfoFieldsAndArguments($arguments[3]))
-                ->getFieldsAndArgumentsSelection($depth);
-        }
 
         return new SelectFields($this->type(), $arguments[1], $ctx, $fieldsAndArguments);
     }
@@ -128,8 +124,10 @@ abstract class Query extends BaseQuery
                     };
                 }
 
-                if ($this->selectFieldClass() === $className) {
-                    return $this->instanciateSelectFields($arguments, $fieldsAndArguments);
+                // rebing 10 removed Field::selectFieldClass()/instanciateSelectFields(); this is
+                // what they did for a resolver type-hinting the base SelectFields directly.
+                if (BaseSelectFields::class === $className) {
+                    return new BaseSelectFields($this->type(), $arguments[1], $arguments[2] ?? null, $fieldsAndArguments);
                 }
 
                 if (ResolveInfo::class === $className) {

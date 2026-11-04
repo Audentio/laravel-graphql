@@ -33,7 +33,7 @@ class SelectFields extends SelectFieldsBase
         // Union types don't have fields directly — fields come from member types
         // via inline fragments. Process each requested field against the member types.
         if ($unwrappedType instanceof UnionType && config('audentioGraphQL.unionEagerLoad')) {
-            static::handleUnionFields($queryArgs, $requestedFields, $unwrappedType, $select, $with, $ctx);
+            static::handleAudentioUnionFields($queryArgs, $requestedFields, $unwrappedType, $select, $with, $ctx);
             $select = ['*'];
             return;
         }
@@ -117,7 +117,27 @@ class SelectFields extends SelectFieldsBase
         $select = ['*'];
     }
 
-    protected static function handleUnionFields(
+    /**
+     * select-fields 1.0 resolves fields that only exist on a union member / interface
+     * implementor and eager-loads their relations. rebing 9 skipped them, and union eager
+     * loading here is opt-in (`audentioGraphQL.unionEagerLoad`, handled by
+     * handleAudentioUnionFields), so keep the rebing 9 behaviour.
+     */
+    protected static function findFieldInConcreteTypes(GraphqlType $interfaceType, string $fieldName): ?FieldDefinition
+    {
+        return null;
+    }
+
+    protected static function findFieldInConcreteUnionTypes(UnionType $unionType, string $fieldName): ?FieldDefinition
+    {
+        return null;
+    }
+
+    /**
+     * Named so it doesn't override select-fields' own handleUnionFields(), which has a
+     * different signature and is called from the parent's handleFields().
+     */
+    protected static function handleAudentioUnionFields(
         array $queryArgs,
         array $requestedFields,
         UnionType $unionType,
