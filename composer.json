@@ -14,8 +14,8 @@
         "ext-json": "*",
         "ext-openssl": "*",
         "audentio/laravel-base": "^2.0.1",
-        "rebing/graphql-laravel": "^9",
-        "audentio/opis-closure-wrapper": "^0.0.1"
+        "rebing/graphql-laravel": "^10.1",
+        "rebing/graphql-laravel-select-fields": "^1.0"
     },
     "autoload": {
         "psr-4": {
