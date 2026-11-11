@@ -18,6 +18,61 @@ use Rebing\GraphQL\Support\SimplePaginationType;
 
 class SelectFields extends SelectFieldsBase
 {
+    /**
+     * Nested (relation) branch: same as the parent, except a wildcard-only select is not
+     * applied. handleFields() below always selects `*`, and the parent then appended the
+     * primary key and called `addSelect(['*', 'table.id'])`. On a relation that already
+     * selects columns — e.g. `latestOfMany()`, which selects `table.*` — that produced
+     * `select table.*, *, table.id`, which MySQL/MariaDB reject as a syntax error (SQLite
+     * accepts it). `*` is the query default, so skipping it changes nothing else.
+     */
+    public static function getSelectableFieldsAndRelations(
+        array $queryArgs,
+        array $requestedFields,
+        GraphqlType $parentType,
+        ?Closure $customQuery = null,
+        bool $topLevel = true,
+        $ctx = null,
+    ) {
+        if ($topLevel) {
+            return parent::getSelectableFieldsAndRelations($queryArgs, $requestedFields, $parentType, $customQuery, $topLevel, $ctx);
+        }
+
+        $select = [];
+        $with = [];
+
+        if ($parentType instanceof WrappingType) {
+            $parentType = $parentType->getInnermostType();
+        }
+
+        static::handleFields($queryArgs, $requestedFields, $parentType, $select, $with, $ctx);
+
+        if ($select !== ['*']) {
+            $parentTable = static::getTableNameFromParentType($parentType);
+            $primaryKey = static::getPrimaryKeyFromParentType($parentType);
+
+            if (null !== $primaryKey) {
+                $primaryKey = $parentTable ? ($parentTable . '.' . $primaryKey) : $primaryKey;
+
+                if (!\in_array($primaryKey, $select)) {
+                    $select[] = $primaryKey;
+                }
+            }
+        }
+
+        return function ($query) use ($with, $select, $customQuery, $requestedFields, $ctx): void {
+            if ($customQuery) {
+                $query = $customQuery($requestedFields['args'], $query, $ctx) ?? $query;
+            }
+
+            if ($select !== ['*']) {
+                $query->addSelect($select);
+            }
+
+            $query->with($with);
+        };
+    }
+
     protected static function handleFields(
         array $queryArgs,
         array $requestedFields,
