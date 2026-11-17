@@ -230,8 +230,13 @@ class GraphQL extends BaseGraphQL
                 return $types;
             },
             'typeLoader' => $lazyload
-                ? static function (string $name): Type {
-                    return app(BaseGraphQL::class)->type($name);
+                ? static function (string $name): ?Type {
+                    $type = app(BaseGraphQL::class)->type($name);
+
+                    // type() aliases `Foo` to `FooType`, but webonyx requires the loader to return
+                    // a type named exactly as asked and throws InvariantViolation otherwise (e.g.
+                    // introspection `__type(name: "Video")`). Null is webonyx's "no such type".
+                    return $type->name === $name ? $type : null;
                 }
                 : null,
             'assumeValid' => $lazyload,
